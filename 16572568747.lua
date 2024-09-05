@@ -159,7 +159,7 @@ local ToggleAutoSwipeOrb = TabMain:CreateToggle({
                         }
                         game:GetService("ReplicatedStorage").Remotes.Misc.OrbSwipe:FireServer(unpack(leaveArgs))
                     end
-                    wait(1) -- Adjust delay as needed
+                    wait(0.000001) -- Adjust delay as needed
                 end
             end)
             coroutine.resume(orbSwipeCoroutine)
@@ -231,7 +231,7 @@ local EggDropdown = TabEgg:CreateDropdown({
 local HatchModeDropdown = TabEgg:CreateDropdown({
     Name = "Hatch Mode",
     SectionParent = SectionAutoEgg,
-    Options = {"1", "3", "10"},
+    Options = {"1", "3", "10", "20", "50",},
     CurrentOption = "1",
     Callback = function(option)
         if option == "max" then
