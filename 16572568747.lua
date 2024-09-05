@@ -173,6 +173,66 @@ local ToggleAutoSwipeOrb = TabMain:CreateToggle({
     end,
 })
 
+local FishingSection = TabMain:CreateSection("Fishing", false)
+
+-- Auto Breaking Ice Toggle
+local isAutoBreakingIce = false
+local breakingIceCoroutine
+
+local ToggleAutoBreakingIce = TabMain:CreateToggle({
+    Name = "Auto Breaking Ice",
+    SectionParent = FishingSection,
+    CurrentValue = false,
+    Callback = function(v)
+        isAutoBreakingIce = v
+        if isAutoBreakingIce then
+            breakingIceCoroutine = coroutine.create(function()
+                while isAutoBreakingIce do
+                    game:GetService("ReplicatedStorage").Remotes.Minigames.GetDoubloonsReward:InvokeServer()
+                    wait(0.0001) -- Set delay to 0.0001 as requested
+                end
+            end)
+            coroutine.resume(breakingIceCoroutine)
+        else
+            isAutoBreakingIce = false
+            if breakingIceCoroutine then
+                coroutine.close(breakingIceCoroutine)
+            end
+        end
+    end,
+})
+
+-- Auto Fishing Toggle
+local isAutoFishing = false
+local fishingCoroutine
+
+local ToggleAutoFishing = TabMain:CreateToggle({
+    Name = "Auto Fishing",
+    SectionParent = FishingSection,
+    CurrentValue = false,
+    Callback = function(v)
+        isAutoFishing = v
+        if isAutoFishing then
+            fishingCoroutine = coroutine.create(function()
+                while isAutoFishing do
+                    local args = {
+                        [1] = "Fish"
+                    }
+                    game:GetService("ReplicatedStorage").Remotes.Minigames.Game:FireServer(unpack(args))
+                    wait(0.0001) -- Set delay to 0.0001 as requested
+                end
+            end)
+            coroutine.resume(fishingCoroutine)
+        else
+            isAutoFishing = false
+            if fishingCoroutine then
+                coroutine.close(fishingCoroutine)
+            end
+        end
+    end,
+})
+
+
 -- Create Egg Tab and Auto Egg Section
 local TabEgg = Window:CreateTab("Egg", nil) -- Title, Image
 local SectionAutoEgg = TabEgg:CreateSection("AutoEgg", false)
