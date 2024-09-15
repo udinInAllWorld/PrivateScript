@@ -71,7 +71,7 @@ local ToggleAutoGift = TabMain:CreateToggle({
                         local args = {[1] = i}
                         game:GetService("ReplicatedStorage"):FindFirstChild("events-V3x"):FindFirstChild("266b27ad-aa4c-48e4-8e52-d8a24bbe68ba"):FireServer(unpack(args))
 
-                        wait(5) 
+                        wait(30) 
                     end
                 end
             end)
@@ -102,7 +102,7 @@ local ToggleAutoShoot = TabMain:CreateToggle({
                     local args = {[1] = 1}
                     game:GetService("ReplicatedStorage"):FindFirstChild("events-V3x"):FindFirstChild("8eeeb218-a53f-4e8c-81d0-905cf9a7154f"):FireServer(unpack(args))
 
-                    wait(1) -- Menunggu 1 detik sebelum menembak lagi
+                    wait(10) -- Menunggu 1 detik sebelum menembak lagi
                 end
             end)
             coroutine.resume(shootCoroutine)
