@@ -102,7 +102,7 @@ local ToggleAutoShoot = TabMain:CreateToggle({
                     local args = {[1] = 1}
                     game:GetService("ReplicatedStorage"):FindFirstChild("events-V3x"):FindFirstChild("8eeeb218-a53f-4e8c-81d0-905cf9a7154f"):FireServer(unpack(args))
 
-                    wait(10) -- Menunggu 1 detik sebelum menembak lagi
+                    wait(7) -- Menunggu 1 detik sebelum menembak lagi
                 end
             end)
             coroutine.resume(shootCoroutine)
@@ -115,3 +115,197 @@ local ToggleAutoShoot = TabMain:CreateToggle({
         end
     end,
 })
+
+-- New Capsules Tab
+local TabCapsules = Window:CreateTab("CAPSULES", nil) -- Title, Image
+local SectionCapsules = TabCapsules:CreateSection("Capsules", false)
+
+-- List of chests
+local chestList = {}
+local selectedChest = nil
+local isAutoOpening = false
+local autoOpenCoroutine = nil
+
+-- Helper function to find capsules with "Ball" and populate the dropdown list
+local function findCapsulesInWorlds()
+    chestList = {}
+    for _, world in pairs(workspace.Map:GetChildren()) do
+        if world:IsA("Folder") and world:FindFirstChild("Capsules") then
+            local capsulesFolder = world.Capsules
+            for _, capsule in pairs(capsulesFolder:GetChildren()) do
+                if capsule:IsA("Folder") and capsule:FindFirstChild("Ball") then
+                    table.insert(chestList, capsule.Name)
+                end
+            end
+        end
+    end
+end
+
+-- Call the function to populate chest list
+findCapsulesInWorlds()
+
+-- Create a dropdown for Capsules
+local DropdownCapsules = TabCapsules:CreateDropdown({
+    Name = "Select Capsule",
+    Options = chestList,
+	SectionParent = SectionCapsules,
+    CurrentOption = nil,
+    Callback = function(selected)
+        selectedChest = selected
+    end
+})
+
+-- Toggle AutoOpen logic
+local ToggleAutoOpen = TabCapsules:CreateToggle({
+    Name = "AutoOpen",
+    SectionParent = SectionCapsules,
+    CurrentValue = false,
+    Callback = function(state)
+        isAutoOpening = state
+        if isAutoOpening and selectedChest then
+            -- Start auto-open coroutine
+            autoOpenCoroutine = coroutine.create(function()
+                while isAutoOpening do
+                    -- Prepare the arguments for FireServer, with chest name in lowercase and removing 'Chest'
+                    local chestName = selectedChest:lower():gsub("chest", "") -- Remove "Chest" and convert to lowercase
+                    local args = {
+                        [1] = chestName,
+                        [2] = false
+                    }
+
+                    -- Fire the server to open the chest
+                    game:GetService("ReplicatedStorage"):WaitForChild("events-V3x"):WaitForChild("129822f0-7d5f-4903-b13a-901327707e68"):FireServer(unpack(args))
+
+                    wait(1) -- Adjust the delay as needed for opening chests
+                end
+            end)
+            coroutine.resume(autoOpenCoroutine)
+        elseif not isAutoOpening then
+            -- Stop the auto-open coroutine
+            if autoOpenCoroutine then
+                coroutine.close(autoOpenCoroutine)
+            end
+        end
+    end
+})
+
+-- New Teleport Tab
+local TabTeleport = Window:CreateTab("TELEPORT", nil) -- Title, Image
+local SectionTeleport = TabTeleport:CreateSection("Teleport Worlds", false)
+
+-- Helper function to teleport player using CFrame
+local function teleportToLocation(cframe)
+    local player = game.Players.LocalPlayer
+    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = cframe
+    end
+end
+
+-- Helper function to find and teleport using Cylinder.040 in specific paths
+local function findAndTeleportCylinder(world)
+    -- Mencari di dalam Portal
+    local portalPart = world:FindFirstChild("Portal")
+    if portalPart then
+        local cylinder = portalPart:FindFirstChild("Cylinder.040")
+        if cylinder then
+            teleportToLocation(cylinder.CFrame)
+            return true -- Berhasil teleport
+        elseif portalPart:FindFirstChild("Portal") then
+            local nestedPortal = portalPart.Portal:FindFirstChild("Cylinder.040")
+            if nestedPortal then
+                teleportToLocation(nestedPortal.CFrame)
+                return true -- Berhasil teleport
+            end
+        end
+    end
+
+    -- Mencari di dalam Interact
+    local interactPart = world:FindFirstChild("Interact")
+    if interactPart then
+        local cylinder = interactPart:FindFirstChild("Cylinder.040")
+        if cylinder then
+            teleportToLocation(cylinder.CFrame)
+            return true -- Berhasil teleport
+        end
+    end
+
+    -- Mencari di path lainnya
+    for _, child in ipairs(world:GetChildren()) do
+        local cylinder = child:FindFirstChild("Cylinder.040")
+        if cylinder then
+            teleportToLocation(cylinder.CFrame)
+            return true -- Berhasil teleport
+        end
+    end
+
+    -- Jika tidak ditemukan
+    print("Warning: Cylinder.040 not found in", world.Name)
+    return false
+end
+
+-- Custom handling for World33 to World38 using CFrame directly
+local function customCFrameTeleport(world)
+    if world.Name == "World35" then
+        local portal = world:FindFirstChild("PortalPixel") and world.PortalPixel:FindFirstChild("Portal.003")
+        if portal then
+            teleportToLocation(portal.CFrame)
+            return true
+        end
+    elseif world.Name == "World36" then
+        local portal = world:FindFirstChild("PortalPixel") and world.PortalPixel:FindFirstChild("Portal.003")
+        if portal then
+            teleportToLocation(portal.CFrame)
+            return true
+        end
+    elseif world.Name == "World37" then
+        local interact = world:FindFirstChild("Interact")
+        if interact and interact:GetChildren()[6] and interact:GetChildren()[6]["Cylinder.039"] then
+            teleportToLocation(interact:GetChildren()[6]["Cylinder.039"].CFrame)
+            return true
+        end
+    else
+        local portal = world:FindFirstChild("Portal")
+        if portal and portal.PrimaryPart then
+            teleportToLocation(portal.PrimaryPart.CFrame)
+            return true
+        end
+    end
+    print("Warning: CFrame not found for", world.Name)
+    return false
+end
+
+-- Sort the worlds numerically by name (World0, World1, etc.)
+local worlds = {}
+for _, world in pairs(workspace.Map:GetChildren()) do
+    if world:IsA("Folder") and world.Name:match("^World%d+") then
+        table.insert(worlds, world)
+    end
+end
+table.sort(worlds, function(a, b)
+    local aNum = tonumber(a.Name:match("%d+"))
+    local bNum = tonumber(b.Name:match("%d+"))
+    return aNum < bNum
+end)
+
+-- Create buttons for sorted worlds
+for _, world in pairs(worlds) do
+    TabTeleport:CreateButton({
+        Name = world.Name,
+        SectionParent = SectionTeleport,
+        Callback = function()
+            -- Custom handling for World33 to World38 (CFrame)
+            if tonumber(world.Name:match("%d+")) >= 33 and tonumber(world.Name:match("%d+")) <= 38 then
+                local success = customCFrameTeleport(world)
+                if not success then
+                    print("Teleport failed for", world.Name)
+                end
+            else
+                -- Default handling for other worlds (Cylinder.040)
+                local success = findAndTeleportCylinder(world)
+                if not success then
+                    print("Teleport failed for", world.Name)
+                end
+            end
+        end
+    })
+end
