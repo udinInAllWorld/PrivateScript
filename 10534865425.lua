@@ -126,32 +126,110 @@ local selectedChest = nil
 local isAutoOpening = false
 local autoOpenCoroutine = nil
 
--- Helper function to find capsules with "Ball" and populate the dropdown list
-local function findCapsulesInWorlds()
-    chestList = {}
-    for _, world in pairs(workspace.Map:GetChildren()) do
-        if world:IsA("Folder") and world:FindFirstChild("Capsules") then
-            local capsulesFolder = world.Capsules
-            for _, capsule in pairs(capsulesFolder:GetChildren()) do
-                if capsule:IsA("Folder") and capsule:FindFirstChild("Ball") then
-                    table.insert(chestList, capsule.Name)
-                end
+-- Helper function to create the dropdown list for specific worlds and handle GetChildren() cases
+local function createDropdownListForWorlds()
+    chestList = {}  -- Reset the chest list
+
+    -- Define the specific paths and structure to add to the dropdown
+    local pathsToAdd = {
+        -- World0
+        {worldName = "World0", chests = {
+            "workspace.Map.World0.Capsules.CandyChest",
+            "workspace.Map.World0.Capsules.CountryChest",
+            "workspace.Map.World0.Capsules.FoodChest",
+            "workspace.Map.World0.Capsules.FruitChest",
+            "workspace.Map.World0.Capsules.IceChest",
+            "workspace.Map.World0.Capsules.MagmaChest",
+            "workspace.Map.World0.Capsules.MedalChest",
+            "workspace.Map.World0.Capsules.PlanetChest",
+            "workspace.Map.World0.Capsules.SportsChest",
+            "workspace.Map.World0.Capsules.StarterChest",
+            "workspace.Map.World0.Capsules.ToxicChest",
+            "workspace.Map.World0.Capsules.WaterChest"
+        }},
+        -- World10
+        {worldName = "World10", chests = {
+            "workspace.Map.World10.DragonChest",
+            "workspace.Map.World10.StarterChest",
+            "workspace.Map.World10.YangChest",
+            "workspace.Map.World10.YinChest",
+            "workspace.Map.World10.TechChest",
+            "workspace.Map.World0.Pets.PetEggs.PetHeavenChest",
+            "workspace.Map.World0.Pets.PetEggs.PetJapanChest"
+        }},
+        -- World15
+        {worldName = "World15", chests = {
+            "workspace.Map.World15.Chests.SpaceChest",
+            "workspace.Map.World15.Chests.MoonChest",
+            "workspace.Map.World15.Chests.MarsChest",
+            "workspace.Map.World15.Chests.SpacePirateChest",
+            "workspace.Map.World15.Chests.SunChest",
+            "workspace.Map.World15.Chests.UFOChest",
+            "workspace.Map.World15.Chests.CosmicForestChest",
+            "workspace.Map.World15.Chests.CryoChest",
+            "workspace.Map.World15.Chests.PetCosmicChest",
+            "workspace.Map.World15.Chests.PetCryoChest",
+            "workspace.Map.World15.Chests.PetRobotChest",
+            "workspace.Map.World15.Chests.PetUndeadChest",
+            "workspace.Map.World15.GlitchEggChest"
+        }},
+        -- World25
+        {worldName = "World25", chests = {
+            "workspace.Map.World25.CircusChest",
+            "workspace.Map.World25.PaperChest",
+            "workspace.Map.World25.PetPaperChest"
+        }},
+        -- World29
+        {worldName = "World29", chests = {
+            "workspace.Map.World29.Chests.CartoonBallsChest",
+            "workspace.Map.World29.Chests.KawaiiBallsChest",
+            "workspace.Map.World29.Chests.SuperheroChest",
+            "workspace.Map.World29.Chests.DinosaurChest"
+        }},
+        -- World37
+        {worldName = "World37", chests = {
+            "workspace.Map.World37.Chests.DreamChest",
+            "workspace.Map.World37.Chests.BubbleChest"
+        }}
+    }
+
+    -- Helper to transform paths into the desired format
+    local function formatChestName(worldName, chestPath)
+        -- Extract the chest name, remove "Chest" and world prefix, and convert to lowercase
+        local chestName = chestPath:match("Capsules%.([^%.]+)Chest") or chestPath:match("Chests%.([^%.]+)Chest") or chestPath:match("Pets%.PetEggs%.([^%.]+)Chest") or chestPath:match("([^%.]+)Chest")
+        
+        if chestName then
+            chestName = chestName:lower()  -- Convert to lowercase
+        end
+        
+        return chestName -- Return the formatted name (e.g., "candy")
+    end
+
+    -- Loop through the paths and add them to chestList in the required format
+    for _, world in pairs(pathsToAdd) do
+        for _, chestPath in pairs(world.chests) do
+            local formattedChestName = formatChestName(world.worldName, chestPath)
+            if formattedChestName then
+                table.insert(chestList, formattedChestName)  -- Add only the formatted name to chestList
             end
         end
     end
+
+    -- Print chestList to verify contents
+    print("Chest List Contents:", chestList)
 end
 
 -- Call the function to populate chest list
-findCapsulesInWorlds()
+createDropdownListForWorlds()
 
 -- Create a dropdown for Capsules
 local DropdownCapsules = TabCapsules:CreateDropdown({
     Name = "Select Capsule",
-    Options = chestList,
-	SectionParent = SectionCapsules,
+    Options = chestList,  -- Use the populated chestList here
+    SectionParent = SectionCapsules,
     CurrentOption = nil,
     Callback = function(selected)
-        selectedChest = selected
+        selectedChest = selected -- Nama yang dipilih dari dropdown sudah diformat
     end
 })
 
@@ -166,17 +244,16 @@ local ToggleAutoOpen = TabCapsules:CreateToggle({
             -- Start auto-open coroutine
             autoOpenCoroutine = coroutine.create(function()
                 while isAutoOpening do
-                    -- Prepare the arguments for FireServer, with chest name in lowercase and removing 'Chest'
-                    local chestName = selectedChest:lower():gsub("chest", "") -- Remove "Chest" and convert to lowercase
+                    -- Nama chest sudah diformat di dropdown, langsung dikirim ke server
                     local args = {
-                        [1] = chestName,
+                        [1] = selectedChest, -- Nama chest (misal: "candy")
                         [2] = false
                     }
 
                     -- Fire the server to open the chest
                     game:GetService("ReplicatedStorage"):WaitForChild("events-V3x"):WaitForChild("129822f0-7d5f-4903-b13a-901327707e68"):FireServer(unpack(args))
 
-                    wait(1) -- Adjust the delay as needed for opening chests
+                    wait(5) -- Sesuaikan waktu jeda untuk membuka chest
                 end
             end)
             coroutine.resume(autoOpenCoroutine)
@@ -188,6 +265,7 @@ local ToggleAutoOpen = TabCapsules:CreateToggle({
         end
     end
 })
+
 
 -- New Teleport Tab
 local TabTeleport = Window:CreateTab("TELEPORT", nil) -- Title, Image
