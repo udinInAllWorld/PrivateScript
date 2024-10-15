@@ -696,198 +696,253 @@ OtherTab:AddToggle({
     end
 })
 
--- Fungsi untuk mengambil daftar pets dari path yang diberikan
-local function getPetList()
-    local pets = {}
-    
-    -- Path pets dari ReplicatedStorage -> Pets -> Normal
-    local petFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Pets"):FindFirstChild("Normal")
-    
-    if petFolder then
-        for _, pet in pairs(petFolder:GetChildren()) do
-            table.insert(pets, pet.Name) -- Tambahkan nama pet ke dalam daftar
+local OtherSection = OtherTab:AddSection({
+    Name = "Garden"
+})
+
+-- Variabel Global untuk Auto Gardening
+getgenv().AutoGarden = false
+getgenv().AutoUpgradeSnacks = false
+
+-- Fungsi untuk mendapatkan daftar seed dengan nama "/1"
+local function getSeedList()
+    local seedList = {}
+    local seedsStorage = game:GetService("Players").LocalPlayer.PlayerGui.GameUI.Menus.Seeds.Display.Items.MainFrame.ScrollingFrame
+
+    for _, seed in pairs(seedsStorage:GetChildren()) do
+        if seed.Name:match("/1") then
+            local seedName = seed.Name:match("([^/]+)") -- Mendapatkan nama seed tanpa "/1"
+            table.insert(seedList, seedName)
         end
-    else
-        warn("Folder Pets/Normal tidak ditemukan di ReplicatedStorage")
     end
-    
-    -- Urutkan pets secara kombinasi angka dan alfabet (1-100, A-Z)
-    table.sort(pets, function(a, b)
-        local numA, numB = tonumber(a:match("%d+")), tonumber(b:match("%d+"))
-        if numA and numB then
-            return numA < numB
-        elseif numA then
-            return true
-        elseif numB then
-            return false
-        else
-            return a < b
-        end
-    end)
-    
-    return pets
+
+    return seedList
 end
 
--- Inisialisasi daftar pets untuk dropdownOptions
-local dropdownOptions = getPetList()
+-- Daftar seeds yang diperoleh secara otomatis
+local seedList = getSeedList()
 
--- Fungsi untuk mengambil daftar pets dari path yang diberikan
-local function getPetList()
-    local pets = {}
-    
-    -- Path pets dari ReplicatedStorage -> Pets -> Normal
-    local petFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Pets"):FindFirstChild("Normal")
-    
-    if petFolder then
-        for _, pet in pairs(petFolder:GetChildren()) do
-            table.insert(pets, pet.Name) -- Tambahkan nama pet ke dalam daftar
+-- Fungsi untuk melakukan auto gardening
+local function autoGarden()
+    local harvestArgsList = {1, 2, 3, 4, 5, 6}
+
+    while getgenv().AutoGarden do
+        -- Melakukan Harvest
+        for _, id in ipairs(harvestArgsList) do
+            local success, err = pcall(function()
+                local args = {[1] = tostring(id)}
+                game:GetService("ReplicatedStorage").Packages.Knit.Services.ItemPlantingService.RF.Harvest:InvokeServer(unpack(args))
+            end)
+            if not success then
+                warn("Error memanen item dengan ID:", id, "Error:", err)
+            end
         end
-    else
-        warn("Folder Pets/Normal tidak ditemukan di ReplicatedStorage")
+        wait(0.00000000000001) -- Sesuaikan interval
+
+        -- Melakukan Penanaman
+        for _, seed in ipairs(seedList) do
+            for i = 1, 6 do
+                local success, err = pcall(function()
+                    local plantArgs = {seed, tostring(1), tostring(i)}
+                    game:GetService("ReplicatedStorage").Packages.Knit.Services.ItemPlantingService.RF.Plant:InvokeServer(unpack(plantArgs))
+                end)
+                if not success then
+                    warn("Error menanam item:", seed, "di slot:", i, "Error:", err)
+                end
+            end
+        end
+        wait(0.00000000000001) -- Sesuaikan interval
     end
-    
-    -- Urutkan pets secara kombinasi angka dan alfabet (1-100, A-Z)
-    table.sort(pets, function(a, b)
-        local numA, numB = tonumber(a:match("%d+")), tonumber(b:match("%d+"))
-        if numA and numB then
-            return numA < numB
-        elseif numA then
-            return true
-        elseif numB then
-            return false
-        else
-            return a < b
-        end
-    end)
-    
-    return pets
 end
 
--- Fungsi untuk mengambil daftar zona secara otomatis
+-- Menambahkan toggle Auto Garden ke UI
+OtherSection:AddToggle({
+    Name = "Auto Garden",
+    Default = false,
+    Callback = function(Value)
+        getgenv().AutoGarden = Value
+        if Value then
+            spawn(autoGarden)
+        end
+    end
+})
+
+-- Fungsi untuk mendapatkan daftar snack
+local function getSnackList()
+    local snackList = {}
+    local snacksStorage = game:GetService("Players").LocalPlayer.PlayerGui.GameUI.Menus.ItemCrafting.Logic.List.ScrollingFrame
+
+    for _, snack in pairs(snacksStorage:GetChildren()) do
+        if snack.Name:match("/1") then
+            local snackName = snack.Name:match("([^/]+)") -- Mengambil nama snack tanpa "/1"
+            table.insert(snackList, snackName)
+        end
+    end
+
+    return snackList
+end
+
+-- Daftar snack yang diperoleh secara otomatis
+local snackList = getSnackList()
+
+-- Fungsi untuk melakukan auto upgrade snack
+local function autoUpgradeSnacks()
+    local tierList = {1, 2}
+
+    while getgenv().AutoUpgradeSnacks do
+        local coroutines = {}
+        for _, snack in ipairs(snackList) do
+            for _, tier in ipairs(tierList) do
+                table.insert(coroutines, coroutine.create(function()
+                    local args = {
+                        {
+                            ["Item"] = snack,
+                            ["Tier"] = tier
+                        }
+                    }
+                    local success, err = pcall(function()
+                        game:GetService("ReplicatedStorage").Packages.Knit.Services.ItemCraftingService.RF.UpgradeSnack:InvokeServer(unpack(args))
+                    end)
+                    if not success then
+                        warn("Error upgrade snack:", snack, "ke tier:", tier, "Error:", err)
+                    end
+                end))
+            end
+        end
+        
+        -- Jalankan semua coroutine
+        for _, co in ipairs(coroutines) do
+            coroutine.resume(co)
+        end
+
+        wait(0.0000001) -- Sesuaikan interval
+    end
+end
+
+-- Menambahkan toggle Auto Upgrade Snacks ke UI
+OtherSection:AddToggle({
+    Name = "Auto Upgrade Snacks",
+    Default = false,
+    Callback = function(Value)
+        getgenv().AutoUpgradeSnacks = Value
+        if Value then
+            spawn(autoUpgradeSnacks)
+        end
+    end
+})
+
+-- Membuat Tab untuk Teleport
+local TeleportTab = Window:MakeTab({
+    Name = "Teleport",
+    Icon = "rbxassetid://4483345998", -- Ikon Tab (bisa diubah sesuai kebutuhan)
+    PremiumOnly = false
+})
+
+-- Membuat Section untuk Teleport
+local TeleportSection = TeleportTab:AddSection({
+    Name = "Teleportasi"
+})
+
+-- Fungsi untuk teleportasi ke zona menggunakan ZoneService
+local function teleportToZone(zoneName)
+    local zone = workspace.Zones:FindFirstChild(zoneName)
+    if zone and zone.Interactables and zone.Interactables.Teleports and zone.Interactables.Teleports.Locations then
+        local args = {
+            [1] = zone.Interactables.Teleports.Locations.Spawn
+        }
+        game:GetService("ReplicatedStorage").Packages.Knit.Services.ZoneService.RE.teleport:FireServer(unpack(args))
+    end
+end
+
+-- Fungsi untuk mendapatkan daftar zona dan mengurutkannya
 local function getZoneList()
     local zones = {}
     local zoneParent = workspace:FindFirstChild("Zones")
-    
     if zoneParent then
         for _, zone in pairs(zoneParent:GetChildren()) do
             table.insert(zones, zone.Name)
         end
-        print("Daftar zona ditemukan: ", table.concat(zones, ", ")) -- Debugging
-    else
-        warn("Zones tidak ditemukan di workspace") -- Jika tidak ada folder Zones
-    end
-
-    -- Mengurutkan zona berdasarkan angka dan alfabet
-    table.sort(zones, function(a, b)
-        local numA, numB = tonumber(a:match("%d+")), tonumber(b:match("%d+"))
-        if numA and numB then
-            return numA < numB
-        elseif numA then
-            return true
-        elseif numB then
-            return false
-        else
-            return a < b
-        end
-    end)
-    
-    -- Pastikan selalu mengembalikan daftar meskipun kosong
-    if #zones == 0 then
-        warn("Tidak ada zona yang ditemukan.") -- Jika tidak ada zona yang ditemukan
-        return {"None"}
-    else
-        return zones
-    end
-end
-
--- Fungsi untuk mengambil daftar eggs dari zona yang dipilih
-local function getEggList(zone)
-    local eggs = {}
-    local zones = workspace:FindFirstChild("Zones")
-
-    if zones then
-        local selectedZone = zones:FindFirstChild(zone)
-        if selectedZone then
-            local eggFolderInteractables = selectedZone:FindFirstChild("Interactables") and selectedZone.Interactables:FindFirstChild("Eggs")
-            local eggFolderMap = selectedZone:FindFirstChild("Map") and selectedZone.Map:FindFirstChild("Eggs")
-            
-            -- Tambahkan debugging untuk memastikan eggs ditemukan
-            if eggFolderInteractables then
-                for _, egg in pairs(eggFolderInteractables:GetChildren()) do
-                    local eggName = egg.Name:gsub(" Egg$", "")
-                    table.insert(eggs, eggName)
-                    print("Ditemukan egg di Interactables: ", eggName) -- Debugging
-                end
-            end
-            
-            if eggFolderMap then
-                for _, egg in pairs(eggFolderMap:GetChildren()) do
-                    local eggName = egg.Name:gsub(" Egg$", "")
-                    table.insert(eggs, eggName)
-                    print("Ditemukan egg di Map: ", eggName) -- Debugging
-                end
-            end
-
-            if #eggs == 0 then
-                warn("Tidak ada eggs yang ditemukan di zona: " .. zone)
-            end
-        else
-            warn("Zona yang dipilih tidak ditemukan: " .. tostring(zone))
-        end
-    else
-        warn("Zones tidak ditemukan di workspace")
-    end
-
-    -- Urutkan eggs secara kombinasi angka dan alfabet (1-100, A-Z)
-    table.sort(eggs, function(a, b)
-        local numA, numB = tonumber(a:match("%d+")), tonumber(b:match("%d+"))
-        if numA and numB then
-            return numA < numB
-        elseif numA then
-            return true
-        elseif numB then
-            return false
-        else
-            return a < b
-        end
-    end)
-
-    return eggs
-end
-
--- Fungsi untuk memperbarui dropdown egg secara otomatis
-local function updateEggDropdown(zone)
-    if not zone then
-        warn("Zona yang dipilih nil atau tidak valid")
-        return
-    end
-
-    print("Zona yang dipilih untuk diperbarui: ", zone) -- Debugging
-
-    local eggs = getEggList(zone)
-    if eggs and #eggs > 0 then
-        print("Dropdown egg diperbarui dengan eggs: ", table.concat(eggs, ", ")) -- Debugging
         
-        -- Langsung mengganti opsi dropdown dengan opsi baru
-        eggDropdown:SetOptions(eggs) -- Ganti opsi dropdown dengan eggs yang ditemukan
-    else
-        warn("Tidak ada eggs yang ditemukan untuk dropdown di zona: " .. zone)
-        eggDropdown:SetOptions({"None"}) -- Reset ke None jika tidak ada eggs
+        -- Mengurutkan daftar zona berdasarkan angka atau nama
+        table.sort(zones, function(a, b)
+            local numA = tonumber(a:match("%d+")) or math.huge
+            local numB = tonumber(b:match("%d+")) or math.huge
+            if numA == numB then
+                return a < b
+            else
+                return numA < numB
+            end
+        end)
+    end
+    return zones
+end
+
+-- Fungsi untuk membuat tombol teleportasi ke zona
+local function createTeleportButtons()
+    local zoneNames = getZoneList()
+
+    for _, zoneName in ipairs(zoneNames) do
+        TeleportSection:AddButton({
+            Name = "Teleport Ke " .. zoneName,
+            Callback = function()
+                teleportToZone(zoneName)
+            end
+        })
     end
 end
 
--- Tab Egg
+-- Membuat tombol teleportasi saat script dijalankan
+createTeleportButtons()
+
+-- Menambahkan event listener untuk memperbarui tombol jika ada zona baru yang ditambahkan
+workspace.Zones.ChildAdded:Connect(function()
+    TeleportSection:Clear() -- Menghapus tombol sebelumnya
+    createTeleportButtons()  -- Membuat ulang tombol
+end)
+
+workspace.Zones.ChildRemoved:Connect(function()
+    TeleportSection:Clear() -- Menghapus tombol sebelumnya
+    createTeleportButtons()  -- Membuat ulang tombol
+end)
+
+-- Menambahkan Dropdown untuk teleportasi
+local selectedZone = "None"
+
+local zoneDropdown = TeleportSection:AddDropdown({
+    Name = "Pilih Zona",
+    Default = "None",
+    Options = getZoneList(),
+    Callback = function(Value)
+        selectedZone = Value
+    end
+})
+
+-- Tombol untuk teleportasi ke zona yang dipilih dari dropdown
+TeleportSection:AddButton({
+    Name = "Teleport Ke Zona",
+    Callback = function()
+        if selectedZone ~= "None" then
+            teleportToZone(selectedZone)
+        else
+            warn("Silakan pilih zona untuk teleportasi")
+        end
+    end
+})
+
+
+-- Membuat Tab untuk Egg
 local EggTab = Window:MakeTab({
     Name = "Egg",
-    Icon = nil,
+    Icon = "rbxassetid://4483345998", -- Ikon Tab (bisa diubah sesuai kebutuhan)
     PremiumOnly = false
 })
 
+-- Membuat Section untuk Egg
 local EggSection = EggTab:AddSection({
-    Name = "EGG"
+    Name = "Egg Hatching"
 })
 
--- Fungsi untuk mendapatkan daftar egg dari zona yang dipilih
+-- Fungsi untuk mendapatkan daftar egg dari zona yang dipilih secara otomatis
 local function getEggList(zone)
     local eggs = {}
     local zones = workspace:FindFirstChild("Zones")
@@ -914,16 +969,12 @@ local function getEggList(zone)
         end
     end
     
-    table.sort(eggs)
-    return eggs
-end
-
--- Fungsi untuk memperbarui dropdown egg berdasarkan zona yang dipilih
-local function updateEggDropdown(zone)
-    local eggs = getEggList(zone)
-    if eggDropdown then
-        eggDropdown:Refresh(eggs, "None")
+    if #eggs == 0 then
+        print("Tidak ada egg yang ditemukan di zona: " .. zone)
+        table.insert(eggs, "Tidak ada Egg")
     end
+    
+    return eggs
 end
 
 -- Fungsi untuk mendapatkan daftar zona
@@ -932,6 +983,7 @@ local function getZoneList()
     local zoneParent = workspace:FindFirstChild("Zones")
     if zoneParent then
         for _, zone in pairs(zoneParent:GetChildren()) do
+            print("Zona ditemukan: " .. zone.Name) -- Debugging
             table.insert(zones, zone.Name)
         end
         
@@ -947,91 +999,174 @@ local function getZoneList()
                 return a < b
             end
         end)
+    else
+        warn("Tidak ada Zones ditemukan di workspace.")
     end
+    
+    if #zones == 0 then
+        table.insert(zones, "Tidak ada Zona")
+    end
+    
     return zones
 end
 
--- Inisialisasi dropdown untuk zone selection
-local zoneDropdown = nil
+-- Mendapatkan daftar zona dan egg secara otomatis
+getgenv().selectedZoneForEgg = getZoneList()[1] -- Zona pertama secara default
+getgenv().selectedEgg = getEggList(getgenv().selectedZoneForEgg)[1] -- Egg pertama dari zona terpilih
 
-zoneDropdown = EggTab:AddDropdown({
+-- Inisialisasi variabel untuk eggDropdown
+local eggDropdown = nil
+
+-- Dropdown untuk memilih zona
+local zoneDropdown = EggSection:AddDropdown({
     Name = "Select Zone",
+    Default = getgenv().selectedZoneForEgg,
     Options = getZoneList(),
-    CurrentOption = "None",
     Callback = function(option)
         getgenv().selectedZoneForEgg = option
-        updateEggDropdown(option)
+        local eggOptions = getEggList(option)
+        getgenv().selectedEgg = eggOptions[1] -- Pilih egg pertama saat zona berubah
+
+        -- Hanya memanggil Refresh jika eggDropdown sudah terbuat
+        if eggDropdown then
+            eggDropdown:Refresh(eggOptions, getgenv().selectedEgg)
+        else
+            warn("eggDropdown tidak tersedia saat ini.")
+        end
     end
 })
 
--- Inisialisasi dropdown untuk egg selection
-local eggDropdown = EggTab:AddDropdown({
+-- Inisialisasi eggDropdown setelah zona dipilih pertama kali
+local eggOptions = getEggList(getgenv().selectedZoneForEgg)
+eggDropdown = EggSection:AddDropdown({
     Name = "Choose Egg",
-    Options = {}, -- Kosong pada awalnya, diisi setelah zona dipilih
-    CurrentOption = "None",
+    Default = getgenv().selectedEgg,
+    Options = eggOptions,
     Callback = function(option)
         getgenv().selectedEgg = option
+        print("Egg dipilih: " .. option) -- Debugging, untuk memastikan egg dipilih
     end
 })
 
--- Dropdown untuk "Hatch Amount"
-local hatchAmountDropdown = EggTab:AddDropdown({
+-- Dropdown untuk memilih jumlah egg yang di-hatch
+local hatchAmountDropdown = EggSection:AddDropdown({
     Name = "Hatch Amount",
+    Default = "1",
     Options = {"1", "3", "8"},
-    CurrentOption = "1",
     Callback = function(option)
         getgenv().hatchAmount = tonumber(option)
     end
 })
 
--- Auto Hatch Toggle
-local autoHatchToggle = EggTab:AddToggle({
+-- Fungsi untuk Auto Hatch
+local function autoHatch()
+    while getgenv().autoHatch do
+        if getgenv().selectedEgg and getgenv().hatchAmount then
+            local args
+            if getgenv().hatchAmount == 1 then
+                args = {
+                    [1] = getgenv().selectedEgg,
+                    [2] = {},
+                    [4] = false
+                }
+            elseif getgenv().hatchAmount == 3 then
+                args = {
+                    [1] = getgenv().selectedEgg,
+                    [2] = {},
+                    [4] = true
+                }
+            elseif getgenv().hatchAmount == 8 then
+                args = {
+                    [1] = getgenv().selectedEgg,
+                    [2] = {},
+                    [4] = true,
+                    [5] = true
+                }
+            end
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RF.purchaseEgg:InvokeServer(unpack(args))
+            wait(0.5) -- Jeda antar hatch, sesuaikan sesuai kebutuhan
+        else
+            warn("Egg atau jumlah hatch belum dipilih!")
+        end
+        wait(0.5)
+    end
+end
+
+-- Menambahkan toggle untuk Auto Hatch ke UI
+EggSection:AddToggle({
     Name = "Auto Hatch",
     Default = false,
-    Callback = function(value)
-        getgenv().autoHatch = value
-        if value then
-            startAutoHatch()
+    Callback = function(Value)
+        getgenv().autoHatch = Value
+        if Value then
+            spawn(autoHatch)
         end
     end
 })
 
--- Fungsi untuk memulai auto hatching
-function startAutoHatch()
-    spawn(function()
-        while getgenv().autoHatch do
-            if not getgenv().selectedEgg or not getgenv().hatchAmount then
-                return
-            end
-
-            local args = {
-                [1] = getgenv().selectedEgg,
-                [4] = getgenv().hatchAmount > 1
-            }
-            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RF.purchaseEgg:InvokeServer(unpack(args))
-            wait(1) -- Waktu tunggu antar hatching
+-- Fungsi untuk mendapatkan daftar pets yang akan dihapus
+local function getPetList()
+    local pets = {}
+    local petFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Pets") and game:GetService("ReplicatedStorage").Pets:FindFirstChild("Normal")
+    
+    if petFolder then
+        for _, pet in pairs(petFolder:GetChildren()) do
+            table.insert(pets, pet.Name)
         end
-    end)
+    end
+    
+    table.sort(pets)
+    return pets
 end
 
+-- Mengisi daftar pets secara otomatis
+getgenv().autoDeletePets = getPetList() -- Secara otomatis mengisi daftar pets yang bisa dihapus
 
--- Fungsi untuk mengatur Egg Animation
-local function toggleEggAnimation(value)
-    if value then
-        -- Logic untuk menyalakan animasi egg
-        print("Egg animation diaktifkan.")
-    else
-        -- Logic untuk mematikan animasi egg
-        print("Egg animation dimatikan.")
+-- Fungsi untuk Auto Delete Pets
+local function autoDeletePets()
+    while getgenv().autoDeletePetsEnabled do
+        for _, petName in pairs(getgenv().autoDeletePets) do
+            local args = {
+                [1] = petName
+            }
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
+        end
+        wait(0.5) -- Sesuaikan jeda waktu
     end
 end
 
--- Toggle untuk mengaktifkan atau menonaktifkan Egg Animation
-EggTab:AddToggle({
-    Name = "Egg Animation",
-    CurrentValue = false,
-    Callback = function(value)
-        toggleEggAnimation(value) -- Panggil fungsi untuk mengatur animasi
+-- Dropdown untuk memilih pets yang akan dihapus
+local selectedPetToDelete = getgenv().autoDeletePets[1] or "Tidak ada Pets"
+
+local autoDeletePetsDropdown = EggSection:AddDropdown({
+    Name = "Select Delete Pets",
+    Default = selectedPetToDelete,
+    Options = getPetList(),
+    Callback = function(option)
+        selectedPetToDelete = option
+        print("Pet dipilih untuk dihapus: " .. option)
+    end
+})
+
+-- Tombol untuk membatalkan pilihan pet
+EggSection:AddButton({
+    Name = "Cancel Delete Pets",
+    Callback = function()
+        selectedPetToDelete = "Tidak ada Pets"
+        autoDeletePetsDropdown:Refresh(getPetList(), selectedPetToDelete)
+        print("Pilihan pet dibatalkan.")
+    end
+})
+
+-- Menambahkan toggle untuk Auto Delete Pets
+EggSection:AddToggle({
+    Name = "Auto Delete Pets",
+    Default = false,
+    Callback = function(Value)
+        getgenv().autoDeletePetsEnabled = Value
+        if Value then
+            spawn(autoDeletePets)
+        end
     end
 })
 
