@@ -104,7 +104,7 @@ KeySystemSection:AddButton({
         if EnteredKey == correctKey then
             print("Key accepted") -- Debug: Key benar
             KeyValid = true
-            KeyExpireTime = os.time() + (1440 * 60) -- Key berlaku selama 24jam
+            KeyExpireTime = os.time() + (120 * 60) -- Key berlaku selama 120 menit
             saveKeyData() -- Simpan key ke file
             OrionLib:MakeNotification({
                 Name = "Key Accepted",
@@ -226,7 +226,9 @@ local RedeemCodes = {
     "THXFOR75KLIKES",
     "MoreFixes",
     "MINI11.5",
-    "SorryForShutdown"
+    "SorryForShutdown",
+    "Update12",
+    "FixedSomeBugs"
 }
 
 -- Add Auto Redeem Code Button Below Auto Rejoin Toggle
@@ -462,7 +464,7 @@ MiscTab:AddButton({
                         [4] = "Multi"
                     }
                     game:GetService("ReplicatedStorage"):WaitForChild("Bridge"):FireServer(unpack(args))
-                    wait(0.1) -- Jeda antar summon
+                    wait(0.001) -- Jeda antar summon
                 end
             elseif not SelectedMap then
                 OrionLib:MakeNotification({
