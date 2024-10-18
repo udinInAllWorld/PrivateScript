@@ -983,7 +983,7 @@ local function getZoneList()
     local zoneParent = workspace:FindFirstChild("Zones")
     if zoneParent then
         for _, zone in pairs(zoneParent:GetChildren()) do
-            print("Zona ditemukan: " .. zone.Name) -- Debugging
+            print("Zona ditemukan: " .. zone.Name)
             table.insert(zones, zone.Name)
         end
         
@@ -1019,7 +1019,7 @@ local eggDropdown = nil
 
 -- Dropdown untuk memilih zona
 local zoneDropdown = EggSection:AddDropdown({
-    Name = "Select Zone",
+    Name = "Pilih Zona",
     Default = getgenv().selectedZoneForEgg,
     Options = getZoneList(),
     Callback = function(option)
@@ -1039,18 +1039,18 @@ local zoneDropdown = EggSection:AddDropdown({
 -- Inisialisasi eggDropdown setelah zona dipilih pertama kali
 local eggOptions = getEggList(getgenv().selectedZoneForEgg)
 eggDropdown = EggSection:AddDropdown({
-    Name = "Choose Egg",
+    Name = "Pilih Egg",
     Default = getgenv().selectedEgg,
     Options = eggOptions,
     Callback = function(option)
         getgenv().selectedEgg = option
-        print("Egg dipilih: " .. option) -- Debugging, untuk memastikan egg dipilih
+        print("Egg dipilih: " .. option)
     end
 })
 
 -- Dropdown untuk memilih jumlah egg yang di-hatch
 local hatchAmountDropdown = EggSection:AddDropdown({
-    Name = "Hatch Amount",
+    Name = "Jumlah Hatch",
     Default = "1",
     Options = {"1", "3", "8"},
     Callback = function(option)
@@ -1120,41 +1120,189 @@ local function getPetList()
 end
 
 -- Mengisi daftar pets secara otomatis
-getgenv().autoDeletePets = getPetList() -- Secara otomatis mengisi daftar pets yang bisa dihapus
+getgenv().autoDeletePetsDropdown1 = {} -- Inisialisasi untuk daftar pets yang akan dihapus di dropdown 1
+getgenv().autoDeletePetsDropdown2 = {}
+getgenv().autoDeletePetsDropdown3 = {}
+getgenv().autoDeletePetsDropdown4 = {}
+getgenv().autoDeletePetsDropdown5 = {}
+getgenv().autoDeletePetsDropdown6 = {}
 
 -- Fungsi untuk Auto Delete Pets
 local function autoDeletePets()
     while getgenv().autoDeletePetsEnabled do
-        for _, petName in pairs(getgenv().autoDeletePets) do
+        -- Menghapus pets dari dropdown 1
+        for _, petName in pairs(getgenv().autoDeletePetsDropdown1) do
             local args = {
                 [1] = petName
             }
             game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
         end
+        -- Menghapus pets dari dropdown 2
+        for _, petName in pairs(getgenv().autoDeletePetsDropdown2) do
+            local args = {
+                [1] = petName
+            }
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
+        end
+        -- Menghapus pets dari dropdown 3
+        for _, petName in pairs(getgenv().autoDeletePetsDropdown3) do
+            local args = {
+                [1] = petName
+            }
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
+        end
+        -- Menghapus pets dari dropdown 4
+        for _, petName in pairs(getgenv().autoDeletePetsDropdown4) do
+            local args = {
+                [1] = petName
+            }
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
+        end
+        -- Menghapus pets dari dropdown 5
+        for _, petName in pairs(getgenv().autoDeletePetsDropdown5) do
+            local args = {
+                [1] = petName
+            }
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
+        end
+        -- Menghapus pets dari dropdown 6
+        for _, petName in pairs(getgenv().autoDeletePetsDropdown6) do
+            local args = {
+                [1] = petName
+            }
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
+        end
+
         wait(0.5) -- Sesuaikan jeda waktu
     end
 end
 
--- Dropdown untuk memilih pets yang akan dihapus
-local selectedPetToDelete = getgenv().autoDeletePets[1] or "Tidak ada Pets"
+-- Menampilkan daftar pets ke dalam 6 dropdown berbeda
+local petList = getPetList()
 
-local autoDeletePetsDropdown = EggSection:AddDropdown({
-    Name = "Select Delete Pets",
-    Default = selectedPetToDelete,
-    Options = getPetList(),
+-- Dropdown pertama
+local autoDeletePetsDropdown1 = EggSection:AddDropdown({
+    Name = "Pilih Pets untuk Dihapus (Dropdown 1)",
+    Default = "",
+    Options = petList,
     Callback = function(option)
-        selectedPetToDelete = option
-        print("Pet dipilih untuk dihapus: " .. option)
+        table.insert(getgenv().autoDeletePetsDropdown1, option)
+        print("Pet dari dropdown 1 ditambahkan untuk dihapus: " .. option)
     end
 })
 
--- Tombol untuk membatalkan pilihan pet
+-- Tombol untuk membatalkan pilihan di dropdown 1
 EggSection:AddButton({
-    Name = "Cancel Delete Pets",
+    Name = "Batalkan Semua Pilihan Pets (Dropdown 1)",
     Callback = function()
-        selectedPetToDelete = "Tidak ada Pets"
-        autoDeletePetsDropdown:Refresh(getPetList(), selectedPetToDelete)
-        print("Pilihan pet dibatalkan.")
+        getgenv().autoDeletePetsDropdown1 = {}
+        autoDeletePetsDropdown1:Refresh(petList, "") -- Reset dropdown ke kosong
+        print("Semua pilihan di dropdown 1 dibatalkan.")
+    end
+})
+
+-- Dropdown kedua
+local autoDeletePetsDropdown2 = EggSection:AddDropdown({
+    Name = "Pilih Pets untuk Dihapus (Dropdown 2)",
+    Default = "",
+    Options = petList,
+    Callback = function(option)
+        table.insert(getgenv().autoDeletePetsDropdown2, option)
+        print("Pet dari dropdown 2 ditambahkan untuk dihapus: " .. option)
+    end
+})
+
+-- Tombol untuk membatalkan pilihan di dropdown 2
+EggSection:AddButton({
+    Name = "Batalkan Semua Pilihan Pets (Dropdown 2)",
+    Callback = function()
+        getgenv().autoDeletePetsDropdown2 = {}
+        autoDeletePetsDropdown2:Refresh(petList, "") -- Reset dropdown ke kosong
+        print("Semua pilihan di dropdown 2 dibatalkan.")
+    end
+})
+
+-- Dropdown ketiga
+local autoDeletePetsDropdown3 = EggSection:AddDropdown({
+    Name = "Pilih Pets untuk Dihapus (Dropdown 3)",
+    Default = "",
+    Options = petList,
+    Callback = function(option)
+        table.insert(getgenv().autoDeletePetsDropdown3, option)
+        print("Pet dari dropdown 3 ditambahkan untuk dihapus: " .. option)
+    end
+})
+
+-- Tombol untuk membatalkan pilihan di dropdown 3
+EggSection:AddButton({
+    Name = "Batalkan Semua Pilihan Pets (Dropdown 3)",
+    Callback = function()
+        getgenv().autoDeletePetsDropdown3 = {}
+        autoDeletePetsDropdown3:Refresh(petList, "") -- Reset dropdown ke kosong
+        print("Semua pilihan di dropdown 3 dibatalkan.")
+    end
+})
+
+-- Dropdown keempat
+local autoDeletePetsDropdown4 = EggSection:AddDropdown({
+    Name = "Pilih Pets untuk Dihapus (Dropdown 4)",
+    Default = "",
+    Options = petList,
+    Callback = function(option)
+        table.insert(getgenv().autoDeletePetsDropdown4, option)
+        print("Pet dari dropdown 4 ditambahkan untuk dihapus: " .. option)
+    end
+})
+
+-- Tombol untuk membatalkan pilihan di dropdown 4
+EggSection:AddButton({
+    Name = "Batalkan Semua Pilihan Pets (Dropdown 4)",
+    Callback = function()
+        getgenv().autoDeletePetsDropdown4 = {}
+        autoDeletePetsDropdown4:Refresh(petList, "") -- Reset dropdown ke kosong
+        print("Semua pilihan di dropdown 4 dibatalkan.")
+    end
+})
+
+-- Dropdown kelima
+local autoDeletePetsDropdown5 = EggSection:AddDropdown({
+    Name = "Pilih Pets untuk Dihapus (Dropdown 5)",
+    Default = "",
+    Options = petList,
+    Callback = function(option)
+        table.insert(getgenv().autoDeletePetsDropdown5, option)
+        print("Pet dari dropdown 5 ditambahkan untuk dihapus: " .. option)
+    end
+})
+
+-- Tombol untuk membatalkan pilihan di dropdown 5
+EggSection:AddButton({
+    Name = "Batalkan Semua Pilihan Pets (Dropdown 5)",
+    Callback = function()
+        getgenv().autoDeletePetsDropdown5 = {}
+        autoDeletePetsDropdown5:Refresh(petList, "") -- Reset dropdown ke kosong
+        print("Semua pilihan di dropdown 5 dibatalkan.")
+    end
+})
+
+-- Dropdown keenam
+local autoDeletePetsDropdown6 = EggSection:AddDropdown({
+    Name = "Pilih Pets untuk Dihapus (Dropdown 6)",
+    Default = "",
+    Options = petList,
+    Callback = function(option)
+        table.insert(getgenv().autoDeletePetsDropdown6, option)
+        print("Pet dari dropdown 6 ditambahkan untuk dihapus: " .. option)
+    end
+})
+
+-- Tombol untuk membatalkan pilihan di dropdown 6
+EggSection:AddButton({
+    Name = "Batalkan Semua Pilihan Pets (Dropdown 6)",
+    Callback = function()
+        getgenv().autoDeletePetsDropdown6 = {}
+        autoDeletePetsDropdown6:Refresh(petList, "") -- Reset dropdown ke kosong
+        print("Semua pilihan di dropdown 6 dibatalkan.")
     end
 })
 
@@ -1167,6 +1315,55 @@ EggSection:AddToggle({
         if Value then
             spawn(autoDeletePets)
         end
+    end
+})
+
+-- Variabel untuk menyimpan status GUI Enchant dan Double Enchant
+local isEnchantOpen = false
+local isDoubleEnchantOpen = false
+
+-- Fungsi untuk membuka/tutup GUI Enchant
+local function toggleEnchantGUI()
+    local enchantGUI = game:GetService("Players").LocalPlayer.PlayerGui.GameUI.Menus:FindFirstChild("Enchant")
+    if enchantGUI then
+        isEnchantOpen = not isEnchantOpen
+        enchantGUI.Visible = isEnchantOpen
+    else
+        warn("GUI Enchant tidak ditemukan!")
+    end
+end
+
+-- Fungsi untuk membuka/tutup GUI Double Enchant
+local function toggleDoubleEnchantGUI()
+    local doubleEnchantGUI = game:GetService("Players").LocalPlayer.PlayerGui.GameUI.Menus.Enchant:FindFirstChild("DoubleEnchants")
+    if doubleEnchantGUI then
+        isDoubleEnchantOpen = not isDoubleEnchantOpen
+        doubleEnchantGUI.Visible = isDoubleEnchantOpen
+    else
+        warn("GUI Double Enchant tidak ditemukan!")
+    end
+end
+
+-- Tambahkan Tab Enchant
+local EnchantTab = Window:MakeTab({
+    Name = "Enchant",
+    Icon = "rbxassetid://4483345998", -- Sesuaikan ikon
+    PremiumOnly = false
+})
+
+-- Tambahkan Tombol Enchant di Tab Enchant
+EnchantTab:AddButton({
+    Name = "Toggle Enchant",
+    Callback = function()
+        toggleEnchantGUI()
+    end
+})
+
+-- Tambahkan Tombol Double Enchant di Tab Enchant
+EnchantTab:AddButton({
+    Name = "Toggle Double Enchant",
+    Callback = function()
+        toggleDoubleEnchantGUI()
     end
 })
 
