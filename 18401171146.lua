@@ -227,8 +227,11 @@ local RedeemCodes = {
     "MoreFixes",
     "MINI11.5",
     "SorryForShutdown",
-    "Update12",
-    "FixedSomeBugs"
+	"Update12",
+	"FixedSomeBugs",
+	"Mini12.5",
+	"UPD13",
+	"OMG100KLIKES"
 }
 
 -- Add Auto Redeem Code Button Below Auto Rejoin Toggle
@@ -464,7 +467,7 @@ MiscTab:AddButton({
                         [4] = "Multi"
                     }
                     game:GetService("ReplicatedStorage"):WaitForChild("Bridge"):FireServer(unpack(args))
-                    wait(0.001) -- Jeda antar summon
+                    wait(0.1) -- Jeda antar summon
                 end
             elseif not SelectedMap then
                 OrionLib:MakeNotification({
