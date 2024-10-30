@@ -218,6 +218,82 @@ local HalloweenSection = EventTab:AddSection({
     Name = "Halloween Event"
 })
 
+
+-- Daftar CFrame / Posisi yang diberikan
+local positions = {
+    CFrame.new(1305.81079, 5.93187714, -8554.60645, 0.945518553, 0, -0.325568169, 0, 1, 0, 0.325568169, 0, 0.945518553),
+    CFrame.new(1325.74097, 5.93187714, -8501.61523, 0.992546201, 0, -0.121869117, 0, 1, 0, 0.121869117, 0, 0.992546201),
+    CFrame.new(1358.74084, 5.93187714, -8475.31641, 0.587785363, 0, -0.809016943, 0, 1, 0, 0.809016943, 0, 0.587785363),
+    CFrame.new(1272.11084, 5.93187714, -8611.42676, -0.945518613, 0, -0.32556811, 0, 1, 0, 0.32556811, 0, -0.945518613),
+    CFrame.new(1270.54102, 5.93187714, -8475.81543, 0.838670492, 0, 0.544639111, 0, 1, 0, -0.544639111, 0, 0.838670492),
+    CFrame.new(1202.31091, 5.93187714, -8482.39648, -0.104528464, 0, 0.994521916, 0, 1, 0, -0.994521916, 0, -0.104528464),
+    CFrame.new(1077.69092, 5.93187714, -8497.17676, 0.99984771, 0, 0.0174523201, 0, 1, 0, -0.0174523201, 0, 0.99984771),
+    CFrame.new(1182.87097, 32.4535561, -8652.02637, 0.587785065, 0, -0.809017122, 0, 1, 0, 0.809017122, 0, 0.587785065),
+    CFrame.new(1088.44092, 32.8218765, -8668.17578, -0.190808997, 0, 0.981627166, 0, 1, 0, -0.981627166, 0, -0.190808997),
+    CFrame.new(1253.84094, 32.8218765, -8668.17578, -0.681998312, 0, -0.73135376, 0, 1, 0, 0.73135376, 0, -0.681998312),
+    CFrame.new(1317.04089, 32.8218765, -8668.17578, 0.819152117, 0, -0.573576331, 0, 1, 0, 0.573576331, 0, 0.819152117),
+    CFrame.new(1028.46106, 5.93187714, -8408.5752, 0.656059086, 0, -0.754709542, 0, 1, 0, 0.754709542, 0, 0.656059086),
+    CFrame.new(928.350952, 6.27187729, -8391.22656, -0.292371601, 0, -0.956304789, 0, 1, 0, 0.956304789, 0, -0.292371601),
+    CFrame.new(845.140991, 5.93187714, -8303.21582, -0.74314487, 0, 0.669130564, 0, 1, 0, -0.669130564, 0, -0.74314487),
+    CFrame.new(837.921021, 5.56355762, -8213.38574, -0.997564077, 0, 0.0697564706, 0, 1, 0, -0.0697564706, 0, -0.997564077),
+    CFrame.new(889.140991, 5.56355762, -8186.61621, 0.945518553, 0, 0.32556814, 0, 1, 0, -0.32556814, 0, 0.945518553),
+    CFrame.new(942.95105, 5.93187714, -8213.38574, -0.990268052, 0, -0.139173076, 0, 1, 0, 0.139173076, 0, -0.990268052),
+    CFrame.new(985.540955, 5.93187714, -8257.41602, -0.848048091, 0, 0.529919267, 0, 1, 0, -0.529919267, 0, -0.848048091),
+    CFrame.new(1061.67102, 5.93187714, -8337.45605, -0.913545489, 0, 0.406736612, 0, 1, 0, -0.406736612, 0, -0.913545489),
+    CFrame.new(1179.95093, 32.8718796, -8274.02637, -0.978147626, 0, 0.207911655, 0, 1, 0, -0.207911655, 0, -0.978147626),
+    CFrame.new(1438.08118, 34.4018784, -8022.81592, 0.0697563812, 0, 0.997564077, 0, 1, 0, -0.997564077, 0, 0.0697563812)
+}
+
+-- Fungsi untuk menghentikan Auto Hit
+local function stopAutoHit()
+    getgenv().autoHitActive = false
+end
+
+-- Fungsi untuk memulai Auto Hit di setiap posisi
+local function autoHitBreakablesWithPositions()
+    while getgenv().autoHitActive do
+        for _, pos in ipairs(positions) do
+            if not getgenv().autoHitActive then return end -- Hentikan jika toggle dimatikan
+
+            -- Teleport ke posisi
+            local player = game.Players.LocalPlayer
+            local humanoidRootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
+            if humanoidRootPart then
+                humanoidRootPart.CFrame = pos
+                wait(0.5) -- Tunggu sebentar setelah teleport
+
+                -- Serang semua objek di sekitar posisi
+                for _, obj in pairs(workspace.GameObjects.Breakables:GetChildren()) do
+                    if (obj.Position - pos.Position).Magnitude < 10 then
+                        local args = { [1] = obj.Name }
+                        while getgenv().autoHitActive and workspace.GameObjects.Breakables:FindFirstChild(obj.Name) do
+                            game:GetService("ReplicatedStorage").Packages.Knit.Services.BreakableService.RF.HitBreakable:InvokeServer(unpack(args))
+                            wait(0.000000001) -- Interval antar hit
+                        end
+                    end
+                end
+            end
+        end
+
+        wait(1) -- Tunggu sebelum memulai loop lagi
+    end
+end
+
+-- Menambahkan Toggle untuk mengaktifkan atau mematikan Auto Hit 🎃👻
+EventTab:AddToggle({
+    Name = "Auto Hit 🎃👻",
+    Default = false,
+    Callback = function(value)
+        getgenv().autoHitActive = value
+        if value then
+            spawn(autoHitBreakablesWithPositions) -- Jalankan fungsi Auto Hit
+        else
+            stopAutoHit() -- Hentikan fungsi Auto Hit
+        end
+    end
+})
+
 -- Auto TrickOrTreat
 EventTab:AddToggle({
     Name = "Auto TrickOrTreat",
@@ -279,78 +355,9 @@ EventTab:AddToggle({
     end
 })
 
--- Auto Hit 🎃👻
--- Fungsi untuk auto hit objek breakables
-local function autoHitBreakables()
-    while autoHitAktif do
-        -- Dapatkan daftar breakables
-        local breakables = workspace:WaitForChild("GameObjects"):WaitForChild("Breakables"):GetChildren()
-
-        for _, breakable in pairs(breakables) do
-            if not autoHitAktif then 
-                return 
-            end -- Berhenti jika toggle dimatikan
-
-            -- Teleport pemain ke posisi objek breakable jika valid
-            if breakable:IsA("MeshPart") then
-                local targetPosition = breakable.Position -- Menggunakan posisi MeshPart
-
-                -- Cek apakah pemain memiliki karakter dan dapat dipindahkan
-                local character = game.Players.LocalPlayer.Character
-                local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
-
-                if humanoidRootPart then
-                    -- Teleport menggunakan PivotTo untuk memindahkan seluruh karakter
-                    character:PivotTo(CFrame.new(targetPosition))
-
-                    -- Tunggu sebentar agar teleport selesai
-                    wait(1)
-
-                    -- Ambil ID dari objek breakable
-                    local breakableID = breakable.Name
-                    local args = { [1] = breakableID }
-
-                    -- Eksekusi hit secara terus menerus selama 10 detik
-                    local startTime = tick() -- Catat waktu mulai
-                    while tick() - startTime < 10 and autoHitAktif do
-                        -- Hit breakable
-                        game:GetService("ReplicatedStorage").Packages.Knit.Services.BreakableService.RF.HitBreakable:InvokeServer(unpack(args))
-
-                        -- Jeda kecil antara setiap pukulan
-                        wait(0.0000000000000001)
-                    end
-                end
-            end
-        end
-
-        -- Jeda antara setiap loop untuk mencari breakable lagi (opsional)
-        wait(1)
-    end
-end
-
--- Toggle untuk Auto Hit 🎃👻 di Event Tab
+-- Auto Spooky Pass
 EventTab:AddToggle({
-    Name = "Auto Hit 🎃👻",
-    Default = false,
-    Callback = function(Value)
-        autoHitAktif = Value
-        if autoHitAktif then
-            autoHitCoroutine = coroutine.create(autoHitBreakables)
-            coroutine.resume(autoHitCoroutine)
-        else
-            -- Hentikan coroutine jika toggle dimatikan
-            if autoHitCoroutine then
-                coroutine.yield(autoHitCoroutine)
-            end
-        end
-    end
-})
-
-
-
--- Auto 🎃Spooky Pass
-EventTab:AddToggle({
-    Name = "Auto 🎃Spooky Pass!",
+    Name = "Auto Spooky Pass!",
     Default = false,
     Callback = function(value)
         getgenv().autoSpookyPass = value
@@ -929,20 +936,19 @@ TeleportSection:AddButton({
     end
 })
 
-
--- Membuat Tab untuk Egg
+-- Membuat Tab Egg
 local EggTab = Window:MakeTab({
     Name = "Egg",
-    Icon = "rbxassetid://4483345998", -- Ikon Tab (bisa diubah sesuai kebutuhan)
+    Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
 
--- Membuat Section untuk Egg
+-- Section untuk Egg Hatching
 local EggSection = EggTab:AddSection({
     Name = "Egg Hatching"
 })
 
--- Fungsi untuk mendapatkan daftar egg dari zona yang dipilih secara otomatis
+-- Fungsi untuk mendapatkan daftar egg dari zona yang dipilih
 local function getEggList(zone)
     local eggs = {}
     local zones = workspace:FindFirstChild("Zones")
@@ -952,28 +958,29 @@ local function getEggList(zone)
         if selectedZone then
             local eggFolderInteractables = selectedZone:FindFirstChild("Interactables") and selectedZone.Interactables:FindFirstChild("Eggs")
             local eggFolderMap = selectedZone:FindFirstChild("Map") and selectedZone.Map:FindFirstChild("Eggs")
-            
+
             if eggFolderInteractables then
                 for _, egg in pairs(eggFolderInteractables:GetChildren()) do
-                    local eggName = egg.Name:gsub(" Egg$", "")
+                    local eggName = egg.Name:gsub(" Egg$", "") -- Hilangkan "Egg" dari nama
                     table.insert(eggs, eggName)
                 end
             end
-            
+
             if eggFolderMap then
                 for _, egg in pairs(eggFolderMap:GetChildren()) do
-                    local eggName = egg.Name:gsub(" Egg$", "")
+                    local eggName = egg.Name:gsub(" Egg$", "") -- Hilangkan "Egg" dari nama
                     table.insert(eggs, eggName)
                 end
             end
         end
     end
-    
+
+    -- Jika tidak ada egg yang ditemukan, tambahkan nilai default
     if #eggs == 0 then
-        print("Tidak ada egg yang ditemukan di zona: " .. zone)
-        table.insert(eggs, "Tidak ada Egg")
+        warn("Tidak ada egg yang ditemukan di zona: " .. (zone or "unknown"))
+        table.insert(eggs, "Tidak ada Egg") -- Default value
     end
-    
+
     return eggs
 end
 
@@ -981,13 +988,13 @@ end
 local function getZoneList()
     local zones = {}
     local zoneParent = workspace:FindFirstChild("Zones")
+
     if zoneParent then
         for _, zone in pairs(zoneParent:GetChildren()) do
-            print("Zona ditemukan: " .. zone.Name)
             table.insert(zones, zone.Name)
         end
-        
-        -- Mengurutkan daftar zona
+
+        -- Urutkan zona berdasarkan angka atau alfabetis
         table.sort(zones, function(a, b)
             if tonumber(a) and tonumber(b) then
                 return tonumber(a) < tonumber(b)
@@ -1002,32 +1009,56 @@ local function getZoneList()
     else
         warn("Tidak ada Zones ditemukan di workspace.")
     end
-    
+
     if #zones == 0 then
         table.insert(zones, "Tidak ada Zona")
     end
-    
+
     return zones
 end
 
--- Mendapatkan daftar zona dan egg secara otomatis
-getgenv().selectedZoneForEgg = getZoneList()[1] -- Zona pertama secara default
-getgenv().selectedEgg = getEggList(getgenv().selectedZoneForEgg)[1] -- Egg pertama dari zona terpilih
+-- Fungsi untuk mendapatkan daftar pets
+local function getPetList()
+    local pets = {}
+    local petFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Pets") and game:GetService("ReplicatedStorage").Pets:FindFirstChild("Normal")
 
--- Inisialisasi variabel untuk eggDropdown
+    if petFolder then
+        for _, pet in pairs(petFolder:GetChildren()) do
+            table.insert(pets, pet.Name)
+        end
+    end
+
+    table.sort(pets)
+    return pets
+end
+
+-- Mendapatkan zona dan egg pertama secara default
+getgenv().selectedZoneForEgg = getZoneList()[1] -- Zona pertama
+local eggOptions = getEggList(getgenv().selectedZoneForEgg)
+if eggOptions and #eggOptions > 0 then
+    getgenv().selectedEgg = eggOptions[1]
+else
+    getgenv().selectedEgg = "Tidak ada Egg"
+end
+
+-- Variabel untuk eggDropdown
 local eggDropdown = nil
 
 -- Dropdown untuk memilih zona
 local zoneDropdown = EggSection:AddDropdown({
-    Name = "Pilih Zona",
+    Name = "Select Zone",
     Default = getgenv().selectedZoneForEgg,
     Options = getZoneList(),
     Callback = function(option)
         getgenv().selectedZoneForEgg = option
         local eggOptions = getEggList(option)
-        getgenv().selectedEgg = eggOptions[1] -- Pilih egg pertama saat zona berubah
+        if eggOptions and #eggOptions > 0 then
+            getgenv().selectedEgg = eggOptions[1]
+        else
+            getgenv().selectedEgg = "Tidak ada Egg"
+        end
 
-        -- Hanya memanggil Refresh jika eggDropdown sudah terbuat
+        -- Pastikan dropdown egg tersedia sebelum refresh
         if eggDropdown then
             eggDropdown:Refresh(eggOptions, getgenv().selectedEgg)
         else
@@ -1036,285 +1067,235 @@ local zoneDropdown = EggSection:AddDropdown({
     end
 })
 
--- Inisialisasi eggDropdown setelah zona dipilih pertama kali
-local eggOptions = getEggList(getgenv().selectedZoneForEgg)
+-- Dropdown untuk memilih egg
 eggDropdown = EggSection:AddDropdown({
-    Name = "Pilih Egg",
+    Name = "Choose Egg",
     Default = getgenv().selectedEgg,
     Options = eggOptions,
     Callback = function(option)
-        getgenv().selectedEgg = option
-        print("Egg dipilih: " .. option)
+        -- Hilangkan "Egg" di akhir nama jika ada
+        getgenv().selectedEgg = option:gsub("Egg$", "")
+        print("Egg dipilih: " .. getgenv().selectedEgg) -- Debugging
     end
 })
 
--- Dropdown untuk memilih jumlah egg yang di-hatch
-local hatchAmountDropdown = EggSection:AddDropdown({
+-- Dropdown Jumlah Hatch
+EggSection:AddDropdown({
     Name = "Jumlah Hatch",
     Default = "1",
-    Options = {"1", "3", "8"},
+    Options = { "1", "3", "8" },
     Callback = function(option)
         getgenv().hatchAmount = tonumber(option)
     end
 })
 
--- Fungsi untuk Auto Hatch
+-- Fungsi Auto Hatch (menggunakan egg tanpa "Egg" di akhir)
 local function autoHatch()
     while getgenv().autoHatch do
-        if getgenv().selectedEgg and getgenv().hatchAmount then
-            local args
-            if getgenv().hatchAmount == 1 then
-                args = {
-                    [1] = getgenv().selectedEgg,
-                    [2] = {},
-                    [4] = false
-                }
-            elseif getgenv().hatchAmount == 3 then
-                args = {
-                    [1] = getgenv().selectedEgg,
-                    [2] = {},
-                    [4] = true
-                }
-            elseif getgenv().hatchAmount == 8 then
-                args = {
-                    [1] = getgenv().selectedEgg,
-                    [2] = {},
-                    [4] = true,
-                    [5] = true
-                }
-            end
+        if getgenv().selectedEgg and getgenv().selectedEgg ~= "None" then
+            local args = {
+                [1] = getgenv().selectedEgg, -- Nama egg tanpa "Egg"
+                [4] = false
+            }
             game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RF.purchaseEgg:InvokeServer(unpack(args))
-            wait(0.5) -- Jeda antar hatch, sesuaikan sesuai kebutuhan
+            wait(0.51)
         else
-            warn("Egg atau jumlah hatch belum dipilih!")
+            warn("Silakan pilih egg terlebih dahulu!")
         end
-        wait(0.5)
     end
 end
 
--- Menambahkan toggle untuk Auto Hatch ke UI
+-- Toggle Auto Hatch
 EggSection:AddToggle({
     Name = "Auto Hatch",
     Default = false,
     Callback = function(Value)
         getgenv().autoHatch = Value
-        if Value then
-            spawn(autoHatch)
-        end
+        if Value then spawn(autoHatch) end
     end
 })
 
--- Fungsi untuk mendapatkan daftar pets yang akan dihapus
-local function getPetList()
-    local pets = {}
-    local petFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Pets") and game:GetService("ReplicatedStorage").Pets:FindFirstChild("Normal")
-    
-    if petFolder then
-        for _, pet in pairs(petFolder:GetChildren()) do
-            table.insert(pets, pet.Name)
-        end
-    end
-    
-    table.sort(pets)
-    return pets
-end
-
--- Mengisi daftar pets secara otomatis
-getgenv().autoDeletePetsDropdown1 = {} -- Inisialisasi untuk daftar pets yang akan dihapus di dropdown 1
-getgenv().autoDeletePetsDropdown2 = {}
-getgenv().autoDeletePetsDropdown3 = {}
-getgenv().autoDeletePetsDropdown4 = {}
-getgenv().autoDeletePetsDropdown5 = {}
-getgenv().autoDeletePetsDropdown6 = {}
-
--- Fungsi untuk Auto Delete Pets
-local function autoDeletePets()
-    while getgenv().autoDeletePetsEnabled do
-        -- Menghapus pets dari dropdown 1
-        for _, petName in pairs(getgenv().autoDeletePetsDropdown1) do
-            local args = {
-                [1] = petName
-            }
-            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
-        end
-        -- Menghapus pets dari dropdown 2
-        for _, petName in pairs(getgenv().autoDeletePetsDropdown2) do
-            local args = {
-                [1] = petName
-            }
-            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
-        end
-        -- Menghapus pets dari dropdown 3
-        for _, petName in pairs(getgenv().autoDeletePetsDropdown3) do
-            local args = {
-                [1] = petName
-            }
-            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
-        end
-        -- Menghapus pets dari dropdown 4
-        for _, petName in pairs(getgenv().autoDeletePetsDropdown4) do
-            local args = {
-                [1] = petName
-            }
-            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
-        end
-        -- Menghapus pets dari dropdown 5
-        for _, petName in pairs(getgenv().autoDeletePetsDropdown5) do
-            local args = {
-                [1] = petName
-            }
-            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
-        end
-        -- Menghapus pets dari dropdown 6
-        for _, petName in pairs(getgenv().autoDeletePetsDropdown6) do
-            local args = {
-                [1] = petName
-            }
-            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RE.changeDeleteState:FireServer(unpack(args))
-        end
-
-        wait(0.5) -- Sesuaikan jeda waktu
-    end
-end
-
--- Menampilkan daftar pets ke dalam 6 dropdown berbeda
+-- Daftar pets
 local petList = getPetList()
+
+-- Fungsi untuk menghapus pets otomatis
+local function autoDeletePet(petName)
+    local args = { [1] = petName }
+    game:GetService("ReplicatedStorage").Packages.Knit.Services.PetService.RF.SetAutoDelete:InvokeServer(unpack(args))
+end
+
+-- Fungsi untuk mereset pilihan hanya pada dropdown yang ditentukan
+local function resetSpecificAutoDeletePets(selectedPets)
+    for _, pet in ipairs(selectedPets) do
+        local args = { [1] = pet }
+        game:GetService("ReplicatedStorage").Packages.Knit.Services.PetService.RF.SetAutoDelete:InvokeServer(unpack(args))
+    end
+
+    -- Kosongkan daftar pets yang dipilih untuk dropdown spesifik tanpa mempengaruhi opsi dropdown
+    for i = #selectedPets, 1, -1 do
+        table.remove(selectedPets, i)
+    end
+end
+
+-- Variabel untuk menyimpan pets yang dipilih
+getgenv().autoDeletePetsDropdown1 = {}
 
 -- Dropdown pertama
 local autoDeletePetsDropdown1 = EggSection:AddDropdown({
     Name = "Pilih Pets untuk Dihapus (Dropdown 1)",
-    Default = "",
+    Default = "",  -- Awalnya kosong
     Options = petList,
     Callback = function(option)
-        table.insert(getgenv().autoDeletePetsDropdown1, option)
-        print("Pet dari dropdown 1 ditambahkan untuk dihapus: " .. option)
+        -- Tambahkan pet yang dipilih ke dalam daftar
+        if not table.find(getgenv().autoDeletePetsDropdown1, option) then
+            table.insert(getgenv().autoDeletePetsDropdown1, option)
+            autoDeletePet(option) -- Jalankan fungsi auto-delete
+            print("Pet ditambahkan untuk dihapus: " .. option)
+        end
     end
 })
 
--- Tombol untuk membatalkan pilihan di dropdown 1
+-- Tombol reset untuk dropdown 1
 EggSection:AddButton({
     Name = "Batalkan Semua Pilihan Pets (Dropdown 1)",
     Callback = function()
-        getgenv().autoDeletePetsDropdown1 = {}
-        autoDeletePetsDropdown1:Refresh(petList, "") -- Reset dropdown ke kosong
-        print("Semua pilihan di dropdown 1 dibatalkan.")
+        resetSpecificAutoDeletePets(getgenv().autoDeletePetsDropdown1)
+        print("All pet selections have been reset for dropdown 1.")
     end
 })
+
+-- Variabel untuk menyimpan pilihan pets dari dropdown kedua
+getgenv().autoDeletePetsDropdown2 = {}
 
 -- Dropdown kedua
 local autoDeletePetsDropdown2 = EggSection:AddDropdown({
     Name = "Pilih Pets untuk Dihapus (Dropdown 2)",
-    Default = "",
+    Default = "",  -- Awalnya kosong
     Options = petList,
     Callback = function(option)
-        table.insert(getgenv().autoDeletePetsDropdown2, option)
-        print("Pet dari dropdown 2 ditambahkan untuk dihapus: " .. option)
+        -- Tambahkan pet yang dipilih ke dalam daftar
+        if not table.find(getgenv().autoDeletePetsDropdown2, option) then
+            table.insert(getgenv().autoDeletePetsDropdown2, option)
+            autoDeletePet(option) -- Jalankan fungsi auto-delete
+            print("Pet ditambahkan untuk dihapus: " .. option)
+        end
     end
 })
 
--- Tombol untuk membatalkan pilihan di dropdown 2
+-- Tombol reset untuk dropdown 2
 EggSection:AddButton({
     Name = "Batalkan Semua Pilihan Pets (Dropdown 2)",
     Callback = function()
-        getgenv().autoDeletePetsDropdown2 = {}
-        autoDeletePetsDropdown2:Refresh(petList, "") -- Reset dropdown ke kosong
-        print("Semua pilihan di dropdown 2 dibatalkan.")
+        resetSpecificAutoDeletePets(getgenv().autoDeletePetsDropdown2)
+        print("All pet selections have been reset for dropdown 2.")
     end
 })
 
--- Dropdown ketiga
+-- Variabel untuk menyimpan pets yang dipilih
+getgenv().autoDeletePetsDropdown3 = {}
+
+-- Dropdown pertama
 local autoDeletePetsDropdown3 = EggSection:AddDropdown({
     Name = "Pilih Pets untuk Dihapus (Dropdown 3)",
-    Default = "",
+    Default = "",  -- Awalnya kosong
     Options = petList,
     Callback = function(option)
-        table.insert(getgenv().autoDeletePetsDropdown3, option)
-        print("Pet dari dropdown 3 ditambahkan untuk dihapus: " .. option)
+        -- Tambahkan pet yang dipilih ke dalam daftar
+        if not table.find(getgenv().autoDeletePetsDropdown3, option) then
+            table.insert(getgenv().autoDeletePetsDropdown3, option)
+            autoDeletePet(option) -- Jalankan fungsi auto-delete
+            print("Pet ditambahkan untuk dihapus: " .. option)
+        end
     end
 })
 
--- Tombol untuk membatalkan pilihan di dropdown 3
+-- Tombol reset untuk dropdown 3
 EggSection:AddButton({
     Name = "Batalkan Semua Pilihan Pets (Dropdown 3)",
     Callback = function()
-        getgenv().autoDeletePetsDropdown3 = {}
-        autoDeletePetsDropdown3:Refresh(petList, "") -- Reset dropdown ke kosong
-        print("Semua pilihan di dropdown 3 dibatalkan.")
+        resetSpecificAutoDeletePets(getgenv().autoDeletePetsDropdown3)
+        print("All pet selections have been reset for dropdown 3.")
     end
 })
 
--- Dropdown keempat
+-- Variabel untuk menyimpan pets yang dipilih
+getgenv().autoDeletePetsDropdown4 = {}
+
+-- Dropdown pertama
 local autoDeletePetsDropdown4 = EggSection:AddDropdown({
     Name = "Pilih Pets untuk Dihapus (Dropdown 4)",
-    Default = "",
+    Default = "",  -- Awalnya kosong
     Options = petList,
     Callback = function(option)
-        table.insert(getgenv().autoDeletePetsDropdown4, option)
-        print("Pet dari dropdown 4 ditambahkan untuk dihapus: " .. option)
+        -- Tambahkan pet yang dipilih ke dalam daftar
+        if not table.find(getgenv().autoDeletePetsDropdown4, option) then
+            table.insert(getgenv().autoDeletePetsDropdown4, option)
+            autoDeletePet(option) -- Jalankan fungsi auto-delete
+            print("Pet ditambahkan untuk dihapus: " .. option)
+        end
     end
 })
 
--- Tombol untuk membatalkan pilihan di dropdown 4
+-- Tombol reset untuk dropdown 4
 EggSection:AddButton({
     Name = "Batalkan Semua Pilihan Pets (Dropdown 4)",
     Callback = function()
-        getgenv().autoDeletePetsDropdown4 = {}
-        autoDeletePetsDropdown4:Refresh(petList, "") -- Reset dropdown ke kosong
-        print("Semua pilihan di dropdown 4 dibatalkan.")
+        resetSpecificAutoDeletePets(getgenv().autoDeletePetsDropdown4)
+        print("All pet selections have been reset for dropdown 4.")
     end
 })
 
--- Dropdown kelima
+-- Variabel untuk menyimpan pets yang dipilih
+getgenv().autoDeletePetsDropdown5 = {}
+
+-- Dropdown pertama
 local autoDeletePetsDropdown5 = EggSection:AddDropdown({
     Name = "Pilih Pets untuk Dihapus (Dropdown 5)",
-    Default = "",
+    Default = "",  -- Awalnya kosong
     Options = petList,
     Callback = function(option)
-        table.insert(getgenv().autoDeletePetsDropdown5, option)
-        print("Pet dari dropdown 5 ditambahkan untuk dihapus: " .. option)
+        -- Tambahkan pet yang dipilih ke dalam daftar
+        if not table.find(getgenv().autoDeletePetsDropdown5, option) then
+            table.insert(getgenv().autoDeletePetsDropdown5, option)
+            autoDeletePet(option) -- Jalankan fungsi auto-delete
+            print("Pet ditambahkan untuk dihapus: " .. option)
+        end
     end
 })
 
--- Tombol untuk membatalkan pilihan di dropdown 5
+-- Tombol reset untuk dropdown 5
 EggSection:AddButton({
     Name = "Batalkan Semua Pilihan Pets (Dropdown 5)",
     Callback = function()
-        getgenv().autoDeletePetsDropdown5 = {}
-        autoDeletePetsDropdown5:Refresh(petList, "") -- Reset dropdown ke kosong
-        print("Semua pilihan di dropdown 5 dibatalkan.")
+        resetSpecificAutoDeletePets(getgenv().autoDeletePetsDropdown5)
+        print("All pet selections have been reset for dropdown 5.")
     end
 })
 
--- Dropdown keenam
+-- Variabel untuk menyimpan pets yang dipilih
+getgenv().autoDeletePetsDropdown6 = {}
+
+-- Dropdown pertama
 local autoDeletePetsDropdown6 = EggSection:AddDropdown({
     Name = "Pilih Pets untuk Dihapus (Dropdown 6)",
-    Default = "",
+    Default = "",  -- Awalnya kosong
     Options = petList,
     Callback = function(option)
-        table.insert(getgenv().autoDeletePetsDropdown6, option)
-        print("Pet dari dropdown 6 ditambahkan untuk dihapus: " .. option)
+        -- Tambahkan pet yang dipilih ke dalam daftar
+        if not table.find(getgenv().autoDeletePetsDropdown6, option) then
+            table.insert(getgenv().autoDeletePetsDropdown6, option)
+            autoDeletePet(option) -- Jalankan fungsi auto-delete
+            print("Pet ditambahkan untuk dihapus: " .. option)
+        end
     end
 })
 
--- Tombol untuk membatalkan pilihan di dropdown 6
+-- Tombol reset untuk dropdown 6
 EggSection:AddButton({
     Name = "Batalkan Semua Pilihan Pets (Dropdown 6)",
     Callback = function()
-        getgenv().autoDeletePetsDropdown6 = {}
-        autoDeletePetsDropdown6:Refresh(petList, "") -- Reset dropdown ke kosong
-        print("Semua pilihan di dropdown 6 dibatalkan.")
-    end
-})
-
--- Menambahkan toggle untuk Auto Delete Pets
-EggSection:AddToggle({
-    Name = "Auto Delete Pets",
-    Default = false,
-    Callback = function(Value)
-        getgenv().autoDeletePetsEnabled = Value
-        if Value then
-            spawn(autoDeletePets)
-        end
+        resetSpecificAutoDeletePets(getgenv().autoDeletePetsDropdown6)
+        print("All pet selections have been reset for dropdown 6.")
     end
 })
 
