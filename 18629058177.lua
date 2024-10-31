@@ -473,7 +473,7 @@ function pickupItems()
         end
         wait(0.01) -- Interval yang sangat kecil agar item dicek secara cepat
     end
-endc
+end
 
     -- Menambahkan Toggle Pickup Special Items (Undead Stick, Serpent Tail, Zombie Flesh, Skeleton Bone) di Tab Farm
     local AutoPickupSpecialItemsEnabled = false
