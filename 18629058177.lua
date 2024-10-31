@@ -135,14 +135,12 @@ function createGodTab()
 
     -- Fungsi untuk memperbarui daftar Gods secara dinamis
     local function refreshGodOptions()
-        -- Mengosongkan daftar sebelumnya
         GodOptions = {}
 
         -- Memeriksa keberadaan folder Gods dan God dan mengisi dropdown
         local resourcesFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Resources")
         
         if resourcesFolder then
-            -- Periksa dan tambahkan dari folder "Gods" jika ada
             if resourcesFolder:FindFirstChild("Gods") then
                 for _, god in pairs(resourcesFolder.Gods:GetChildren()) do
                     if god:IsA("Model") then
@@ -151,7 +149,6 @@ function createGodTab()
                 end
             end
 
-            -- Periksa dan tambahkan dari folder "God" jika ada
             if resourcesFolder:FindFirstChild("God") then
                 for _, god in pairs(resourcesFolder.God:GetChildren()) do
                     if god:IsA("Model") then
@@ -161,7 +158,9 @@ function createGodTab()
             end
         end
 
-        -- Perbarui dropdown dengan daftar baru
+        table.sort(GodOptions) -- Mengurutkan daftar Gods secara alfabetis
+
+        -- Refresh dropdown dengan daftar baru
         if TpGodsDropdown then
             TpGodsDropdown:Refresh(GodOptions, true)  -- Refresh dropdown dengan list baru, true untuk mempertahankan pilihan sebelumnya
         end
@@ -179,6 +178,14 @@ function createGodTab()
 
     -- Jalankan refresh pertama kali untuk mengisi daftar
     refreshGodOptions()
+
+    -- Menjalankan fungsi refresh otomatis setiap 5 detik
+    spawn(function()
+        while true do
+            wait(5)
+            refreshGodOptions()
+        end
+    end)
 
     -- Membuat Toggle Teleport To Gods
     local AutoTeleportGodEnabled = false
@@ -198,73 +205,66 @@ function createGodTab()
 
     -- Fungsi untuk teleport ke model yang dipilih dalam Gods
     function teleportToGods()
-        -- Coba cari di kedua folder, "Gods" dan "God"
         local godModel = workspace.Map.Resources:FindFirstChild("Gods") and workspace.Map.Resources.Gods:FindFirstChild(SelectedGod)
                         or workspace.Map.Resources:FindFirstChild("God") and workspace.Map.Resources.God:FindFirstChild(SelectedGod)
                         
         if godModel then
             local targetPosition
 
-            -- Periksa apakah model memiliki PrimaryPart, jika tidak gunakan posisi keseluruhan model
             if godModel.PrimaryPart then
-                targetPosition = godModel.PrimaryPart.Position + Vector3.new(0, 10, 0) -- Teleport ke posisi samping PrimaryPart
+                targetPosition = godModel.PrimaryPart.Position + Vector3.new(0, 10, 0)
             else
-                targetPosition = godModel:GetModelCFrame().Position + Vector3.new(0, 10, 0) -- Fallback ke GetModelCFrame
+                targetPosition = godModel:GetModelCFrame().Position + Vector3.new(0, 10, 0)
             end
 
-            -- Teleport pemain ke targetPosition
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
         end
     end
 
     -- Menambahkan Toggle Pickup Essence
     local AutoPickupEssenceEnabled = false
-    local pickupEssenceRadius = 100 -- Radius pengambilan essence dalam satuan unit
+    local pickupEssenceRadius = 200
+
     GodTab:AddToggle({
         Name = "Pickup Essence",
         Default = false,
         Callback = function(Value)
             AutoPickupEssenceEnabled = Value
             if AutoPickupEssenceEnabled then
-                spawn(pickupEssences) -- Menjalankan fungsi pickupEssences dalam thread terpisah
+                spawn(pickupEssences)
             end
         end
     })
 
-    -- Fungsi untuk pickup Essence dan Big Essence di sekitar pemain dengan jarak tertentu
-    function pickupEssences()
-        while AutoPickupEssenceEnabled do
-            local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-            for _, item in pairs(workspace.Important.Items:GetChildren()) do
-                if not AutoPickupEssenceEnabled then break end -- Berhenti jika toggle dimatikan
-                local itemPosition = item.Position
-                local distance = (playerPosition - itemPosition).Magnitude
-                
-                -- Mengambil item yang merupakan Essence atau Big Essence dan berada dalam jarak yang ditentukan
-                if (item.Name == "Essence" or item.Name == "Big Essence") and distance <= pickupEssenceRadius then
+ -- Fungsi untuk pickup Essence dan Big Essence di sekitar pemain dengan radius tertentu
+function pickupEssences()
+    while AutoPickupEssenceEnabled do
+        local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        local nearbyItems = workspace.Important.Items:GetChildren()
+
+        for _, item in pairs(nearbyItems) do
+            if not AutoPickupEssenceEnabled then break end -- Berhenti jika toggle dimatikan
+
+            local itemPosition = item.Position
+            local distance = (playerPosition - itemPosition).Magnitude
+            
+            if (item.Name == "Essence" or item.Name == "Big Essence") and distance <= pickupEssenceRadius then
+                spawn(function()
                     pcall(function()
                         game:GetService("ReplicatedStorage").Events.Pickup:InvokeServer(item)
                     end)
-                end
+                end)
             end
-            wait(0.00001) -- Waktu tunggu dipercepat agar essence dicek setiap 0.1 detik
         end
+        wait(0.01) -- Interval yang sangat kecil agar item dicek dengan cepat
     end
-
-    -- Refresh daftar Gods setiap 10 detik untuk memastikan list selalu up-to-date
-    spawn(function()
-        while true do
-            wait(5) -- Interval 10 detik untuk refresh
-            refreshGodOptions()
-        end
-    end)
+end
 
     -- Menambahkan Section Teleport World di Tab God
     local TeleportWorldSection = GodTab:AddSection({
         Name = "Teleport World"
     })
 
-    -- Button untuk teleport ke lokasi normal
     TeleportWorldSection:AddButton({
         Name = "Tp Normal",
         Callback = function()
@@ -272,7 +272,6 @@ function createGodTab()
         end
     })
 
-    -- Button untuk teleport ke Void
     TeleportWorldSection:AddButton({
         Name = "Tp to Void",
         Callback = function()
@@ -280,7 +279,6 @@ function createGodTab()
         end
     })
 
-    -- Button untuk teleport ke UnderWorld
     TeleportWorldSection:AddButton({
         Name = "Tp To UnderWorld",
         Callback = function()
@@ -289,8 +287,7 @@ function createGodTab()
     })
 end
 
-
--- Fungsi untuk membuat tab Farm setelah key valid
+-- Fungsi untuk membuat Tab Farm setelah key valid
 function createFarmTab()
     local FarmTab = Window:MakeTab({
         Name = "Farm",
@@ -301,24 +298,31 @@ function createFarmTab()
     -- Mengambil daftar folder di dalam workspace.Map.Resources, tanpa Misc dan God
     local ResourceFolders = {}
     local resourcesFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Resources")
+    local TpResourceDropdown
+    local SelectedResource = nil
 
-    if resourcesFolder then
-        for _, folder in pairs(resourcesFolder:GetChildren()) do
-            if folder:IsA("Folder") and folder.Name ~= "Misc" and folder.Name ~= "God" then
-                table.insert(ResourceFolders, folder.Name)
+    -- Fungsi untuk memperbarui opsi Resource secara dinamis
+    local function refreshResourceOptions()
+        ResourceFolders = {}
+        if resourcesFolder then
+            for _, folder in pairs(resourcesFolder:GetChildren()) do
+                if folder:IsA("Folder") and folder.Name ~= "Misc" and folder.Name ~= "God" then
+                    table.insert(ResourceFolders, folder.Name)
+                end
             end
         end
-    end
-    table.sort(ResourceFolders) -- Mengurutkan secara alfabetis
+        -- Tambahkan opsi King Ant jika folder Misc ditemukan
+        if resourcesFolder and resourcesFolder:FindFirstChild("Misc") and resourcesFolder.Misc:FindFirstChild("King Spawner") then
+            table.insert(ResourceFolders, "King Ant")
+        end
 
-    -- Tambahkan opsi King Ant jika folder Misc ditemukan
-    if resourcesFolder and resourcesFolder:FindFirstChild("Misc") and resourcesFolder.Misc:FindFirstChild("King Spawner") then
-        table.insert(ResourceFolders, "King Ant")
+        table.sort(ResourceFolders)  -- Mengurutkan daftar ResourceFolders secara alfabetis
+
+        TpResourceDropdown:Refresh(ResourceFolders, true)  -- Refresh dropdown dengan list baru
     end
 
-    -- Menambahkan Dropdown Tp To di Tab Farm
-    local SelectedResource = nil
-    FarmTab:AddDropdown({
+    -- Dropdown untuk Tp To di Tab Farm dengan fungsi Refresh
+    TpResourceDropdown = FarmTab:AddDropdown({
         Name = "Tp To",
         Default = "Select Resource",
         Options = ResourceFolders,
@@ -326,6 +330,9 @@ function createFarmTab()
             SelectedResource = Value
         end
     })
+
+    -- Refresh daftar pertama kali saat Tab Farm dibuat
+    refreshResourceOptions()
 
     -- Membuat Toggle Teleport Player
     local AutoTeleportEnabled = false
@@ -349,7 +356,6 @@ function createFarmTab()
             -- Teleport ke King Spawner jika King Ant dipilih
             local kingSpawner = workspace.Map.Resources.Misc:FindFirstChild("King Spawner")
             if kingSpawner then
-                -- Menggunakan PrimaryPart atau GetModelCFrame untuk mendapatkan posisi
                 local targetPosition
                 if kingSpawner.PrimaryPart then
                     targetPosition = kingSpawner.PrimaryPart.Position + Vector3.new(0, 5, 0) -- Teleport ke 5 unit di atas PrimaryPart
@@ -376,18 +382,22 @@ function createFarmTab()
 
     -- Mengambil daftar Critters di dalam workspace.Important.Critters dan mengurutkannya
     local CritterOptions = {}
-    local CritterNames = {}
-    for _, critter in pairs(workspace.Important.Critters:GetChildren()) do
-        if not critter:IsA("Folder") and not CritterNames[critter.Name] then
-            table.insert(CritterOptions, critter.Name)
-            CritterNames[critter.Name] = true
-        end
-    end
-    table.sort(CritterOptions)
-
-    -- Menambahkan Dropdown Tp Critters di Tab Farm
+    local CritterDropdown
     local SelectedCritter = nil
-    FarmTab:AddDropdown({
+
+    -- Fungsi untuk memperbarui daftar Critter secara dinamis
+    local function refreshCritterOptions()
+        CritterOptions = {}
+        for _, critter in pairs(workspace.Important.Critters:GetChildren()) do
+            table.insert(CritterOptions, critter.Name)
+        end
+        table.sort(CritterOptions)  -- Mengurutkan daftar CritterOptions secara alfabetis
+
+        CritterDropdown:Refresh(CritterOptions, true)  -- Refresh dropdown dengan list baru
+    end
+
+    -- Dropdown untuk Tp Critters di Tab Farm dengan fungsi Refresh
+    CritterDropdown = FarmTab:AddDropdown({
         Name = "Tp Critters",
         Default = "Select Critter",
         Options = CritterOptions,
@@ -395,6 +405,9 @@ function createFarmTab()
             SelectedCritter = Value
         end
     })
+
+    -- Refresh daftar pertama kali untuk Critters
+    refreshCritterOptions()
 
     -- Membuat Toggle Teleport To Critters
     local AutoTeleportCritterEnabled = false
@@ -426,7 +439,7 @@ function createFarmTab()
 
     -- Menambahkan Toggle Pickup Everything
     local AutoPickupEnabled = false
-    local pickupRadius = 100 -- Radius pengambilan item dalam satuan unit
+    local pickupRadius = 200 -- Radius pengambilan item dalam satuan unit
     FarmTab:AddToggle({
         Name = "Pickup Everything",
         Default = false,
@@ -438,64 +451,98 @@ function createFarmTab()
         end
     })
 
-    -- Fungsi untuk pickup item di sekitar pemain dengan jarak tertentu
-    function pickupItems()
-        while AutoPickupEnabled do
-            local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-            for _, item in pairs(workspace.Important.Items:GetChildren()) do
-                if not AutoPickupEnabled then break end -- Berhenti jika toggle dimatikan
-                local itemPosition = item.Position
-                local distance = (playerPosition - itemPosition).Magnitude
-                
-                -- Hanya mengambil item yang berada dalam jarak yang ditentukan
-                if distance <= pickupRadius then
+  -- Fungsi untuk pickup item di sekitar pemain dengan jarak tertentu
+function pickupItems()
+    while AutoPickupEnabled do
+        local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        local nearbyItems = workspace.Important.Items:GetChildren()
+        
+        for _, item in pairs(nearbyItems) do
+            if not AutoPickupEnabled then break end -- Berhenti jika toggle dimatikan
+
+            local itemPosition = item.Position
+            local distance = (playerPosition - itemPosition).Magnitude
+            
+            if distance <= pickupRadius then
+                spawn(function()
                     pcall(function()
                         game:GetService("ReplicatedStorage").Events.Pickup:InvokeServer(item)
                     end)
-                end
+                end)
             end
-            wait(0.0001) -- Waktu tunggu dipercepat agar item dicek setiap 0.1 detik
         end
+        wait(0.01) -- Interval yang sangat kecil agar item dicek secara cepat
     end
+endc
 
-    -- Menambahkan Toggle Pickup Undead Stick di Tab Farm
-    local AutoPickupUndeadStickEnabled = false
-    local pickupUndeadStickRadius = 100 -- Radius pengambilan item Undead Stick dalam unit
+    -- Menambahkan Toggle Pickup Special Items (Undead Stick, Serpent Tail, Zombie Flesh, Skeleton Bone) di Tab Farm
+    local AutoPickupSpecialItemsEnabled = false
+    local pickupSpecialItemRadius = 200 -- Radius pengambilan item spesial dalam unit
 
     FarmTab:AddToggle({
-        Name = "Pickup Undead Stick",
+        Name = "Pickup Special Items",
         Default = false,
         Callback = function(Value)
-            AutoPickupUndeadStickEnabled = Value
-            if AutoPickupUndeadStickEnabled then
-                spawn(pickupUndeadSticks) -- Menjalankan fungsi pickupUndeadSticks dalam thread terpisah
+            AutoPickupSpecialItemsEnabled = Value
+            if AutoPickupSpecialItemsEnabled then
+                spawn(pickupSpecialItems) -- Menjalankan fungsi pickupSpecialItems dalam thread terpisah
             end
         end
     })
 
-    -- Fungsi untuk mengambil hanya Undead Stick di sekitar pemain dengan jarak tertentu
-    function pickupUndeadSticks()
-        while AutoPickupUndeadStickEnabled do
-            local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-            for _, item in pairs(workspace.Important.Items:GetChildren()) do
-                if not AutoPickupUndeadStickEnabled then break end -- Berhenti jika toggle dimatikan
-                local itemPosition = item.Position
-                local distance = (playerPosition - itemPosition).Magnitude
-                
-                -- Mengambil hanya item yang bernama "Undead Stick" dan berada dalam radius yang ditentukan
-                if item.Name == "Undead Stick" and distance <= pickupUndeadStickRadius then
+    -- Fungsi untuk mengambil hanya Undead Stick, Serpent Tail, Zombie Flesh, dan Skeleton Bone di sekitar pemain dengan jarak tertentu
+function pickupSpecialItems()
+    while AutoPickupSpecialItemsEnabled do
+        local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        local nearbyItems = workspace.Important.Items:GetChildren()
+        
+        for _, item in pairs(nearbyItems) do
+            if not AutoPickupSpecialItemsEnabled then break end -- Berhenti jika toggle dimatikan
+            
+            local itemPosition = item.Position
+            local distance = (playerPosition - itemPosition).Magnitude
+            
+            if (item.Name == "Undead Stick" or item.Name == "Serpent Tail" or item.Name == "Zombie Flesh" or item.Name == "Skeleton Bone") and distance <= pickupSpecialItemRadius then
+                spawn(function()
                     pcall(function()
                         game:GetService("ReplicatedStorage").Events.Pickup:InvokeServer(item)
                     end)
-                end
+                end)
             end
-            wait(0.0001) -- Interval yang sangat kecil agar pengambilan item berlangsung cepat
+        end
+        wait(0.01) -- Interval yang sangat kecil agar item dicek dengan cepat
+    end
+end
+
+    -- Menambahkan Toggle Coin Press
+    local AutoCoinPressEnabled = false
+
+    FarmTab:AddToggle({
+        Name = "Coin Press",
+        Default = false,
+        Callback = function(Value)
+            AutoCoinPressEnabled = Value
+            if AutoCoinPressEnabled then
+                spawn(runCoinPress) -- Menjalankan fungsi runCoinPress dalam thread terpisah
+            end
+        end
+    })
+
+    -- Fungsi untuk menjalankan Coin Press setiap 1 detik
+    function runCoinPress()
+        while AutoCoinPressEnabled do
+            local args = {
+                [1] = workspace.Important.Deployables:FindFirstChild("Coin Press"),
+                [2] = "Gold Bar"
+            }
+            game:GetService("ReplicatedStorage").Events.InteractStructure:FireServer(unpack(args))
+            wait(0.00001) -- Interval 1 detik
         end
     end
 end
 
 
--- Memulai script jika key valid saat pertama kali dijalankan
+-- Menjalankan script jika key valid
 if keyLoaded or checkKeyValid() then
     createGodTab()
     createFarmTab()
