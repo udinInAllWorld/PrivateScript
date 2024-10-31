@@ -236,26 +236,29 @@ function createGodTab()
         end
     })
 
-    -- Fungsi untuk pickup Essence dan Big Essence di sekitar pemain dengan radius tertentu
-    function pickupEssences()
-        while AutoPickupEssenceEnabled do
-            local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-            local region = Region3.new(playerPosition - Vector3.new(pickupEssenceRadius, pickupEssenceRadius, pickupEssenceRadius),
-                                       playerPosition + Vector3.new(pickupEssenceRadius, pickupEssenceRadius, pickupEssenceRadius))
+ -- Fungsi untuk pickup Essence dan Big Essence di sekitar pemain dengan radius tertentu
+function pickupEssences()
+    while AutoPickupEssenceEnabled do
+        local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        local nearbyItems = workspace.Important.Items:GetChildren()
+
+        for _, item in pairs(nearbyItems) do
+            if not AutoPickupEssenceEnabled then break end -- Berhenti jika toggle dimatikan
+
+            local itemPosition = item.Position
+            local distance = (playerPosition - itemPosition).Magnitude
             
-            local itemsInRadius = workspace:FindPartsInRegion3(region, nil, math.huge)
-            
-            for _, item in pairs(itemsInRadius) do
-                if not AutoPickupEssenceEnabled then break end
-                if item and (item.Name == "Essence" or item.Name == "Big Essence") then
+            if (item.Name == "Essence" or item.Name == "Big Essence") and distance <= pickupEssenceRadius then
+                spawn(function()
                     pcall(function()
                         game:GetService("ReplicatedStorage").Events.Pickup:InvokeServer(item)
                     end)
-                end
+                end)
             end
-            wait(0.0001)
         end
+        wait(0.01) -- Interval yang sangat kecil agar item dicek dengan cepat
     end
+end
 
     -- Menambahkan Section Teleport World di Tab God
     local TeleportWorldSection = GodTab:AddSection({
@@ -448,24 +451,29 @@ function createFarmTab()
         end
     })
 
-    -- Fungsi untuk pickup item di sekitar pemain dengan jarak tertentu
-    function pickupItems()
-        while AutoPickupEnabled do
-            local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-            for _, item in pairs(workspace.Important.Items:GetChildren()) do
-                if not AutoPickupEnabled then break end -- Berhenti jika toggle dimatikan
-                local itemPosition = item.Position
-                local distance = (playerPosition - itemPosition).Magnitude
-                
-                if distance <= pickupRadius then
+  -- Fungsi untuk pickup item di sekitar pemain dengan jarak tertentu
+function pickupItems()
+    while AutoPickupEnabled do
+        local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        local nearbyItems = workspace.Important.Items:GetChildren()
+        
+        for _, item in pairs(nearbyItems) do
+            if not AutoPickupEnabled then break end -- Berhenti jika toggle dimatikan
+
+            local itemPosition = item.Position
+            local distance = (playerPosition - itemPosition).Magnitude
+            
+            if distance <= pickupRadius then
+                spawn(function()
                     pcall(function()
                         game:GetService("ReplicatedStorage").Events.Pickup:InvokeServer(item)
                     end)
-                end
+                end)
             end
-            wait(0.0001) -- Interval yang sangat kecil agar item dicek dengan cepat
         end
+        wait(0.01) -- Interval yang sangat kecil agar item dicek secara cepat
     end
+endc
 
     -- Menambahkan Toggle Pickup Special Items (Undead Stick, Serpent Tail, Zombie Flesh, Skeleton Bone) di Tab Farm
     local AutoPickupSpecialItemsEnabled = false
@@ -483,23 +491,28 @@ function createFarmTab()
     })
 
     -- Fungsi untuk mengambil hanya Undead Stick, Serpent Tail, Zombie Flesh, dan Skeleton Bone di sekitar pemain dengan jarak tertentu
-    function pickupSpecialItems()
-        while AutoPickupSpecialItemsEnabled do
-            local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-            for _, item in pairs(workspace.Important.Items:GetChildren()) do
-                if not AutoPickupSpecialItemsEnabled then break end -- Berhenti jika toggle dimatikan
-                local itemPosition = item.Position
-                local distance = (playerPosition - itemPosition).Magnitude
-                
-                if (item.Name == "Undead Stick" or item.Name == "Serpent Tail" or item.Name == "Zombie Flesh" or item.Name == "Skeleton Bone") and distance <= pickupSpecialItemRadius then
+function pickupSpecialItems()
+    while AutoPickupSpecialItemsEnabled do
+        local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        local nearbyItems = workspace.Important.Items:GetChildren()
+        
+        for _, item in pairs(nearbyItems) do
+            if not AutoPickupSpecialItemsEnabled then break end -- Berhenti jika toggle dimatikan
+            
+            local itemPosition = item.Position
+            local distance = (playerPosition - itemPosition).Magnitude
+            
+            if (item.Name == "Undead Stick" or item.Name == "Serpent Tail" or item.Name == "Zombie Flesh" or item.Name == "Skeleton Bone") and distance <= pickupSpecialItemRadius then
+                spawn(function()
                     pcall(function()
                         game:GetService("ReplicatedStorage").Events.Pickup:InvokeServer(item)
                     end)
-                end
+                end)
             end
-            wait(0.0001) -- Interval yang sangat kecil agar pengambilan item berlangsung cepat
         end
+        wait(0.01) -- Interval yang sangat kecil agar item dicek dengan cepat
     end
+end
 
     -- Menambahkan Toggle Coin Press
     local AutoCoinPressEnabled = false
