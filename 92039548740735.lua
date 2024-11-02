@@ -98,7 +98,7 @@ KeySystemSection:AddButton({
     Callback = function()
         if EnteredKey == correctKey then
             KeyValid = true
-            KeyExpireTime = os.time() + (120 * 60) -- Key berlaku selama 120 menit
+            KeyExpireTime = os.time() + (60 * 60) -- Key berlaku selama 120 menit
             saveKeyData()
             OrionLib:MakeNotification({
                 Name = "Key Accepted",
@@ -282,27 +282,40 @@ function createFarmTab()
     local TpResourceDropdown
     local SelectedResource = nil
 
-    -- Fungsi untuk memperbarui opsi Resource secara dinamis
-    local function refreshResourceOptions()
-        ResourceFolders = {}
-        if resourcesFolder then
-            for _, folder in pairs(resourcesFolder:GetChildren()) do
-                if folder:IsA("Folder") and folder.Name ~= "Misc" and folder.Name ~= "God" and folder.Name ~= "Gods" then
+-- Fungsi untuk memperbarui opsi Resource secara dinamis berdasarkan kehadiran objek
+local function refreshResourceOptions()
+    ResourceFolders = {}
+    if resourcesFolder then
+        for _, folder in pairs(resourcesFolder:GetChildren()) do
+            if folder:IsA("Folder") and folder.Name ~= "Misc" and folder.Name ~= "God" and folder.Name ~= "Gods" then
+                -- Periksa apakah folder memiliki setidaknya satu objek aktif
+                local hasActiveObject = false
+                for _, object in pairs(folder:GetChildren()) do
+                    if object:IsA("Model") or object:IsA("Part") then
+                        hasActiveObject = true
+                        break
+                    end
+                end
+                
+                -- Tambahkan ke dropdown jika ada objek aktif dalam folder
+                if hasActiveObject then
                     table.insert(ResourceFolders, folder.Name)
                 end
             end
         end
-        -- Tambahkan opsi King Ant jika folder Misc ditemukan
-        if resourcesFolder and resourcesFolder:FindFirstChild("Misc") and resourcesFolder.Misc:FindFirstChild("King Spawner") then
-            table.insert(ResourceFolders, "King Ant")
-        end
-
-        table.sort(ResourceFolders)  -- Mengurutkan daftar ResourceFolders secara alfabetis
-
-        if TpResourceDropdown then
-            TpResourceDropdown:Refresh(ResourceFolders, true)  -- Refresh dropdown dengan list baru
-        end
     end
+
+    -- Tambahkan opsi King Ant jika folder Misc ditemukan dan memiliki objek King Spawner
+    if resourcesFolder and resourcesFolder:FindFirstChild("Misc") and resourcesFolder.Misc:FindFirstChild("King Spawner") then
+        table.insert(ResourceFolders, "King Ant")
+    end
+
+    table.sort(ResourceFolders)  -- Mengurutkan daftar ResourceFolders secara alfabetis
+
+    if TpResourceDropdown then
+        TpResourceDropdown:Refresh(ResourceFolders, true)  -- Refresh dropdown dengan daftar yang diperbarui
+    end
+end
 
     -- Dropdown untuk Tp To di Tab Farm dengan fungsi Refresh
     TpResourceDropdown = FarmTab:AddDropdown({
@@ -550,11 +563,205 @@ function createFarmTab()
     end
 end
 
+-- Fungsi untuk membuat Tab Fruit Farm setelah key valid
+function createFruitFarmTab()
+    local FruitFarmTab = Window:MakeTab({
+        Name = "Fruit Farm",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    -- Section untuk Place Plant Box
+    local PlantSection = FruitFarmTab:AddSection({
+        Name = "Place Plant Box"
+    })
+
+    -- Slider untuk menentukan jumlah Plant Box
+    local PlantBoxAmount = 1
+    PlantSection:AddSlider({
+        Name = "Amount of Plant Box",
+        Min = 1,
+        Max = 100,
+        Default = 1,
+        Color = Color3.fromRGB(255, 255, 255),
+        Increment = 1,
+        ValueName = "Boxes",
+        Callback = function(Value)
+            PlantBoxAmount = Value
+        end
+    })
+
+    -- Button untuk Place Plant Box
+    PlantSection:AddButton({
+        Name = "Place Plant Box",
+        Callback = function()
+            placePlantBoxes("Plant Box")
+        end
+    })
+
+    -- Button untuk Place Golden Plant Box
+    PlantSection:AddButton({
+        Name = "Place Golden Plant Box",
+        Callback = function()
+            placePlantBoxes("Golden Plant Box")
+        end
+    })
+
+    -- Fungsi untuk menempatkan Plant Box berjejer dengan jarak kecil di sumbu Z
+    function placePlantBoxes(boxType)
+        local player = game.Players.LocalPlayer
+        if not player or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "Player or HumanoidRootPart not found.",
+                Time = 5
+            })
+            return
+        end
+
+        -- Posisi awal di bawah pemain
+        local playerCFrame = player.Character.HumanoidRootPart.CFrame
+        local basePosition = playerCFrame.Position + Vector3.new(0, -3, 0) -- Di bawah pemain pada sumbu Y
+
+        -- Offset kecil pada sumbu Z untuk memberikan jarak kecil antar Plant Box ke belakang
+        local offset = Vector3.new(0, 0, 1) -- Jarak kecil ke belakang pada sumbu Z
+
+        for i = 0, PlantBoxAmount - 1 do
+            local positionOffset = offset * i
+            local newCFrame = CFrame.new(basePosition + positionOffset)
+            
+            local args = {
+                [1] = boxType,
+                [2] = newCFrame,
+                [3] = 0
+            }
+
+            -- Cek apakah event ada sebelum dipanggil
+            if game:GetService("ReplicatedStorage").Events:FindFirstChild("PlaceStructure") then
+                game:GetService("ReplicatedStorage").Events.PlaceStructure:FireServer(unpack(args))
+            else
+                OrionLib:MakeNotification({
+                    Name = "Error",
+                    Content = "Event PlaceStructure not found.",
+                    Time = 5
+                })
+                break
+            end
+
+            wait(0.1) -- Penundaan untuk menghindari masalah performa
+        end
+    end
+
+    -- Section untuk Plant/Harvest Fruit
+    local FruitSection = FruitFarmTab:AddSection({
+        Name = "Plant/Harvest Fruit"
+    })
+
+    -- Dropdown untuk memilih jenis buah
+    local selectedFruit = "Bloodfruit"  -- Default selection
+    FruitSection:AddDropdown({
+        Name = "Select Fruit",
+        Default = "Bloodfruit",
+        Options = {"Bloodfruit", "Heartfruit", "Jelly", "Sunfruit", "Bluefruit", "Cloudberry", "Pumpkin", "Blight Fruit"},
+        Callback = function(Value)
+            selectedFruit = Value
+        end
+    })
+
+    -- Fungsi untuk menanam buah hanya di Plant Box di sekitar pemain
+    local function plantFruit()
+        local player = game.Players.LocalPlayer
+        if not player or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "Player or HumanoidRootPart not found.",
+                Time = 5
+            })
+            return
+        end
+
+        local playerPosition = player.Character.HumanoidRootPart.Position
+        local maxDistance = 10  -- Batas jarak maksimum untuk menanam di Plant Box terdekat
+
+        for _, plantBox in pairs(workspace.Important.Deployables:GetChildren()) do
+            if plantBox.Name == "Plant Box" or plantBox.Name == "Golden Plant Box" then
+                local plantBoxPosition = plantBox:GetModelCFrame().Position
+                local distance = (plantBoxPosition - playerPosition).Magnitude
+                if distance <= maxDistance then
+                    local args = {
+                        [1] = plantBox,
+                        [2] = selectedFruit
+                    }
+                    game:GetService("ReplicatedStorage").Events.InteractStructure:FireServer(unpack(args))
+                end
+            end
+        end
+    end
+
+    -- Toggle untuk menanam buah secara berulang selama toggle aktif
+    local plantFruitToggle = false
+    FruitSection:AddToggle({
+        Name = "Plant Fruit",
+        Default = false,
+        Callback = function(Value)
+            plantFruitToggle = Value
+            if plantFruitToggle then
+                spawn(function()  -- Menjalankan loop di thread terpisah
+                    while plantFruitToggle do
+                        plantFruit()  -- Jalankan fungsi tanam buah hanya pada Plant Box terdekat
+                        wait(1)  -- Jeda 1 detik sebelum memeriksa kembali
+                    end
+                end)
+            end
+        end
+    })
+
+    -- Fungsi untuk memanen buah dari setiap model tanaman yang ditemukan di dalam Plant Box secara paralel
+    local function harvestFruit()
+        for _, plantBox in pairs(workspace.Important.Deployables:GetChildren()) do
+            if plantBox.Name == "Plant Box" or plantBox.Name == "Golden Plant Box" then
+                -- Menjalankan panen untuk setiap model di dalam Plant Box secara paralel
+                for _, crop in pairs(plantBox:GetChildren()) do
+                    if crop:IsA("Model") then
+                        spawn(function()  -- Memanen setiap tanaman secara paralel
+                            local args = { [1] = crop }
+                            game:GetService("ReplicatedStorage").Events.Pickup:InvokeServer(unpack(args))
+                        end)
+                    end
+                end
+            end
+        end
+    end
+
+    -- Toggle untuk memanen buah tanpa delay, menggunakan parallel processing untuk menghindari lag
+    local harvestFruitToggle = false
+    local harvestingInProgress = false  -- Flag untuk mencegah pemanggilan berulang
+
+    FruitSection:AddToggle({
+        Name = "Harvest Fruit",
+        Default = false,
+        Callback = function(Value)
+            harvestFruitToggle = Value
+            if harvestFruitToggle and not harvestingInProgress then
+                harvestingInProgress = true
+                spawn(function()
+                    while harvestFruitToggle do
+                        harvestFruit()  -- Jalankan fungsi panen buah dari semua Plant Box secara paralel
+                        wait(1)  -- Delay kecil untuk mencegah lag
+                    end
+                    harvestingInProgress = false
+                end)
+            end
+        end
+    })
+end
+
 
 -- Menjalankan script jika key valid
 if keyLoaded or checkKeyValid() then
     createGodTab()
     createFarmTab()
+    createFruitFarmTab()
 end
 
 -- Memulai UI
