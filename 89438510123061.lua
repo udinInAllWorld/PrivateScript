@@ -285,33 +285,41 @@ function createMainTab()
         end
     })
 
-    -- Fungsi untuk mendapatkan semua ID pet dari player
-    function getPlayerPetIDs()
-        local petIDs = {}
+    -- Fungsi untuk mendapatkan UUID dari pet ID
+    local function getPetUUID(petID)
+        return petID:match("%-%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x")
+    end
+
+    -- Fungsi untuk mendapatkan semua UUID pet dari player
+    function getPlayerPetUUIDs()
+        local petUUIDs = {}
         local playerName = game.Players.LocalPlayer.Name
         for _, petFolder in pairs(workspace.Server.Pets:GetChildren()) do
             if petFolder.Name:match(playerName) then
-                table.insert(petIDs, petFolder.Name)
+                local uuid = getPetUUID(petFolder.Name)
+                if uuid then
+                    table.insert(petUUIDs, uuid)
+                end
             end
         end
-        return petIDs
+        return petUUIDs
     end
 
     -- Fungsi untuk menjalankan Auto Fight
     function startAutoFight()
         spawn(function()
-            local petIDs = getPlayerPetIDs()
-            if #petIDs == 0 then
+            local petUUIDs = getPlayerPetUUIDs()
+            if #petUUIDs == 0 then
                 OrionLib:MakeNotification({
                     Name = "No Pets Found",
-                    Content = "No pet IDs could be found for the player.",
+                    Content = "No pet UUIDs could be found for the player.",
                     Time = 5
                 })
                 return
             end
 
             while AutoFightEnabled and SelectedMap and SelectedEnemy do
-                for _, petID in ipairs(petIDs) do
+                for _, petUUID in ipairs(petUUIDs) do
                     local enemyInstance = workspace.Server.Enemies:FindFirstChild(SelectedMap)
                         and workspace.Server.Enemies[SelectedMap]:FindFirstChild(SelectedEnemy)
 
@@ -320,7 +328,7 @@ function createMainTab()
                             [1] = "General",
                             [2] = "Pets",
                             [3] = "Attack",
-                            [4] = petID,
+                            [4] = petUUID,
                             [5] = enemyInstance
                         }
                         game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
@@ -329,19 +337,19 @@ function createMainTab()
 
                 -- Mengecek apakah pet sudah tidak ada dalam Info.Pets
                 wait(0.5)  -- Delay untuk menghindari spam
-                for _, petID in ipairs(petIDs) do
+                for _, petUUID in ipairs(petUUIDs) do
                     local enemyPetsFolder = workspace.Server.Enemies:FindFirstChild(SelectedMap)
                         and workspace.Server.Enemies[SelectedMap]:FindFirstChild(SelectedEnemy)
                         and workspace.Server.Enemies[SelectedMap][SelectedEnemy]:FindFirstChild("Info")
                         and workspace.Server.Enemies[SelectedMap][SelectedEnemy].Info:FindFirstChild("Pets")
 
-                    if enemyPetsFolder and not enemyPetsFolder:FindFirstChild(petID) then
-                        -- Jika petID tidak ada di folder Info.Pets, kirim pet untuk menyerang lagi
+                    if enemyPetsFolder and not enemyPetsFolder:FindFirstChild(petUUID) then
+                        -- Jika petUUID tidak ada di folder Info.Pets, kirim pet untuk menyerang lagi
                         local args = {
                             [1] = "General",
                             [2] = "Pets",
                             [3] = "Attack",
-                            [4] = petID,
+                            [4] = petUUID,
                             [5] = workspace.Server.Enemies[SelectedMap][SelectedEnemy]
                         }
                         game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
