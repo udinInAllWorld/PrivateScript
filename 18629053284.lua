@@ -772,20 +772,21 @@ function createPickupTab()
     
     -- Tabel pickup dengan pengelompokan dan urutan alfabetis
     local pickupToggles = {
-        Adurite = {"Big Raw Adurite", "Raw Adurite", "Adurite Bar"},
+        Adurite = {"Big Raw Adurite", "Raw Adurite", "Adurite Bar", "Big Adurite Bar"},
         Bloodfruit = {"Bloodfruit"},
-        Coal = {"Coal"},
+        Coal = {"Coal", "Big Coal"},
         Coin = {"Coin"},
         CrystalChunk = {"Crystal Chunk"},
-        Emerald = {"Emerald"},
-        Essence = {"Essence"},
-        Gold = {"Big Gold Bar", "Raw Gold", "Big Raw Gold", "Gold Bar"},
+        Emerald = {"Emerald", "Big Emerald"},
+        Essence = {"Essence", "Big Essence"},
+        Gold = {"Big Gold Bar", "Raw Gold", "Big Raw Gold", "Gold Bar", "Big Gold Bar"},
         Heartfruit = {"Heartfruit"},
         Hellstone = {"Big Raw Hellstone", "Raw Hellstone", "Big Hellstone Bar", "Hellstone Bar"},
+	Hide = {"Hide", "Fire Hide"},
         IceCube = {"Ice Cube"},
         Iron = {"Big Raw Iron", "Raw Iron", "Big Iron Bar", "Iron Bar"},
         KingHeart = {"King Heart"},
-        Leaves = {"Leaves"},
+        Leaves = {"Leaves", "Big Leaves"},
         Log = {"Log"},
         Magnetite = {"Raw Magnetite", "Magnetite"},
         Meat = {"Cooked Meat", "Raw Meat"}, -- Gabungkan Cooked Meat dan Raw Meat di toggle Meat
@@ -796,10 +797,12 @@ function createPickupTab()
         SkeletonBone = {"Skeleton Bone"},
         Soulite = {"Big Raw Soulite", "Raw Soulite", "Big Soulite Bar", "Soulite Bar"},
         SpiritKey = {"Spirit Key"},
-        Steel = {"Steel Mix", "Steel Bar"},
-        Stick = {"Stick"},
+        Steel = {"Steel Mix", "Steel Bar", "Big Steel Mix"},
+        Stick = {"Stick", "Big Stick"},
         Stone = {"Big Stone", "Stone"},
         Undead = {"Undead Stick", "Undead Meat", "Undead Heart"},
+	UnderworldMeat = {"Raw Underworld Meat", "Cooked Underworld Meat"},
+	Void = {"Void Shard"},
         ZombieFlesh = {"Zombie Flesh"}
     }
 
