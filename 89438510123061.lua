@@ -287,7 +287,7 @@ function createMainTab()
 
     -- Fungsi untuk mendapatkan UUID dari pet ID
     local function getPetUUID(petID)
-        return petID:match("%-%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x")
+        return petID:match("%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x")
     end
 
     -- Fungsi untuk mendapatkan semua UUID pet dari player
