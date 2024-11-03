@@ -159,177 +159,177 @@ function createTrialTab()
     end)
 end
 
--- Membuat Tab Main
-local MainTab = OrionLib:MakeTab({
-    Name = "Main",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+-- Fungsi untuk membuat Tab Main
+function createMainTab()
+    local MainTab = Window:MakeTab({
+        Name = "Main",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
 
--- Toggle untuk Auto Click
-local AutoClickEnabled = false
+    -- Toggle untuk Auto Click
+    local AutoClickEnabled = false
 
-MainTab:AddToggle({
-    Name = "Auto Click",
-    Default = false,
-    Callback = function(Value)
-        AutoClickEnabled = Value
-        if AutoClickEnabled then
-            startAutoClick()
+    MainTab:AddToggle({
+        Name = "Auto Click",
+        Default = false,
+        Callback = function(Value)
+            AutoClickEnabled = Value
+            if AutoClickEnabled then
+                startAutoClick()
+            end
         end
+    })
+
+    -- Fungsi untuk menjalankan Auto Click setiap 0.01 detik
+    function startAutoClick()
+        spawn(function()
+            while AutoClickEnabled do
+                local args = {
+                    [1] = "Enemies",
+                    [2] = "World",
+                    [3] = "Click"
+                }
+                game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
+                wait(0.01)
+            end
+        end)
     end
-})
 
--- Fungsi untuk menjalankan Auto Click setiap 0.01 detik
-function startAutoClick()
-    spawn(function()
-        while AutoClickEnabled do
-            local args = {
-                [1] = "Enemies",
-                [2] = "World",
-                [3] = "Click"
-            }
-            game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
-            wait(0.01)
-        end
-    end)
-end
+    -- Section Auto Fight
+    local AutoFightSection = MainTab:AddSection({
+        Name = "Auto Fight"
+    })
 
--- Section Auto Fight
-local AutoFightSection = MainTab:AddSection({
-    Name = "Auto Fight"
-})
+    -- Dropdown untuk Enemy Map
+    local EnemyMapOptions = {}
+    local SelectedMap = nil
+    local SelectedEnemy = nil
+    local EnemyDropdown
 
--- Dropdown untuk Enemy Map
-local EnemyMapOptions = {}
-local SelectedMap = nil
-local SelectedEnemy = nil
-local EnemyDropdown
-
--- Mengisi Dropdown Enemy Map dengan nama-nama map dari workspace.Server.Enemies
-for _, mapFolder in pairs(workspace.Server.Enemies:GetChildren()) do
-    if mapFolder:IsA("Folder") then
-        table.insert(EnemyMapOptions, mapFolder.Name)
-    end
-end
-
--- Dropdown untuk memilih map
-AutoFightSection:AddDropdown({
-    Name = "Enemy Map",
-    Default = "Select Map",
-    Options = EnemyMapOptions,
-    Callback = function(Value)
-        SelectedMap = Value
-        refreshEnemyDropdown()
-    end
-})
-
--- Fungsi untuk mengisi semua Enemies unik sebelum Map dipilih
-local function getAllUniqueEnemies()
-    local uniqueEnemies = {}
+    -- Mengisi Dropdown Enemy Map dengan nama-nama map dari workspace.Server.Enemies
     for _, mapFolder in pairs(workspace.Server.Enemies:GetChildren()) do
         if mapFolder:IsA("Folder") then
-            for _, enemy in pairs(mapFolder:GetChildren()) do
+            table.insert(EnemyMapOptions, mapFolder.Name)
+        end
+    end
+
+    -- Dropdown untuk memilih map
+    AutoFightSection:AddDropdown({
+        Name = "Enemy Map",
+        Default = "Select Map",
+        Options = EnemyMapOptions,
+        Callback = function(Value)
+            SelectedMap = Value
+            refreshEnemyDropdown()
+        end
+    })
+
+    -- Fungsi untuk mengisi semua Enemies unik sebelum Map dipilih
+    local function getAllUniqueEnemies()
+        local uniqueEnemies = {}
+        for _, mapFolder in pairs(workspace.Server.Enemies:GetChildren()) do
+            if mapFolder:IsA("Folder") then
+                for _, enemy in pairs(mapFolder:GetChildren()) do
+                    if enemy:IsA("Part") and not table.find(uniqueEnemies, enemy.Name) then
+                        table.insert(uniqueEnemies, enemy.Name)
+                    end
+                end
+            end
+        end
+        return uniqueEnemies
+    end
+
+    -- Mengisi dropdown Enemies dengan daftar awal dari semua Enemies unik
+    local InitialEnemiesList = getAllUniqueEnemies()
+    EnemyDropdown = AutoFightSection:AddDropdown({
+        Name = "Enemies",
+        Default = "Select Enemy",
+        Options = InitialEnemiesList,
+        Callback = function(Value)
+            SelectedEnemy = Value
+        end
+    })
+
+    -- Fungsi untuk memperbarui Dropdown Enemies berdasarkan Map yang dipilih
+    function refreshEnemyDropdown()
+        if not SelectedMap then return end
+
+        local uniqueEnemies = {}
+        local enemiesFolder = workspace.Server.Enemies:FindFirstChild(SelectedMap)
+
+        if enemiesFolder then
+            for _, enemy in pairs(enemiesFolder:GetChildren()) do
                 if enemy:IsA("Part") and not table.find(uniqueEnemies, enemy.Name) then
                     table.insert(uniqueEnemies, enemy.Name)
                 end
             end
         end
+
+        if EnemyDropdown then
+            EnemyDropdown:Refresh(uniqueEnemies, true)
+        end
     end
-    return uniqueEnemies
-end
 
--- Mengisi dropdown Enemies dengan daftar awal dari semua Enemies unik
-local InitialEnemiesList = getAllUniqueEnemies()
-EnemyDropdown = AutoFightSection:AddDropdown({
-    Name = "Enemies",
-    Default = "Select Enemy",
-    Options = InitialEnemiesList,
-    Callback = function(Value)
-        SelectedEnemy = Value
-    end
-})
+    -- Toggle untuk Auto Fight
+    local AutoFightEnabled = false
 
--- Fungsi untuk memperbarui Dropdown Enemies berdasarkan Map yang dipilih
-function refreshEnemyDropdown()
-    if not SelectedMap then return end
-
-    local uniqueEnemies = {}
-    local enemiesFolder = workspace.Server.Enemies:FindFirstChild(SelectedMap)
-
-    if enemiesFolder then
-        for _, enemy in pairs(enemiesFolder:GetChildren()) do
-            if enemy:IsA("Part") and not table.find(uniqueEnemies, enemy.Name) then
-                table.insert(uniqueEnemies, enemy.Name)
+    AutoFightSection:AddToggle({
+        Name = "Auto Fight",
+        Default = false,
+        Callback = function(Value)
+            AutoFightEnabled = Value
+            if AutoFightEnabled then
+                startAutoFight()
             end
         end
-    end
+    })
 
-    if EnemyDropdown then
-        EnemyDropdown:Refresh(uniqueEnemies, true)
-    end
-end
-
--- Toggle untuk Auto Fight
-local AutoFightEnabled = false
-
-AutoFightSection:AddToggle({
-    Name = "Auto Fight",
-    Default = false,
-    Callback = function(Value)
-        AutoFightEnabled = Value
-        if AutoFightEnabled then
-            startAutoFight()
-        end
-    end
-})
-
--- Fungsi untuk mendapatkan ID pet dari player
-function getPlayerPetID()
-    local playerName = game.Players.LocalPlayer.Name
-    for _, petFolder in pairs(workspace.Server.Pets:GetChildren()) do
-        if petFolder.Name:match(playerName) then
-            return petFolder.Name
-        end
-    end
-    return nil
-end
-
--- Fungsi untuk menjalankan Auto Fight
-function startAutoFight()
-    spawn(function()
-        local petID = getPlayerPetID()
-        if not petID then
-            OrionLib:MakeNotification({
-                Name = "No Pet Found",
-                Content = "Pet ID could not be found for the player.",
-                Time = 5
-            })
-            return
-        end
-
-        while AutoFightEnabled and SelectedMap and SelectedEnemy do
-            local enemyInstance = workspace.Server.Enemies:FindFirstChild(SelectedMap)
-                and workspace.Server.Enemies[SelectedMap]:FindFirstChild(SelectedEnemy)
-
-            if enemyInstance then
-                local args = {
-                    [1] = "General",
-                    [2] = "Pets",
-                    [3] = "Attack",
-                    [4] = petID,
-                    [5] = enemyInstance
-                }
-                game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
+    -- Fungsi untuk mendapatkan ID pet dari player
+    function getPlayerPetID()
+        local playerName = game.Players.LocalPlayer.Name
+        for _, petFolder in pairs(workspace.Server.Pets:GetChildren()) do
+            if petFolder.Name:match(playerName) then
+                return petFolder.Name
             end
-            wait(0.01)
         end
-    end)
+        return nil
+    end
+
+    -- Fungsi untuk menjalankan Auto Fight
+    function startAutoFight()
+        spawn(function()
+            local petID = getPlayerPetID()
+            if not petID then
+                OrionLib:MakeNotification({
+                    Name = "No Pet Found",
+                    Content = "Pet ID could not be found for the player.",
+                    Time = 5
+                })
+                return
+            end
+
+            while AutoFightEnabled and SelectedMap and SelectedEnemy do
+                local enemyInstance = workspace.Server.Enemies:FindFirstChild(SelectedMap)
+                    and workspace.Server.Enemies[SelectedMap]:FindFirstChild(SelectedEnemy)
+
+                if enemyInstance then
+                    local args = {
+                        [1] = "General",
+                        [2] = "Pets",
+                        [3] = "Attack",
+                        [4] = petID,
+                        [5] = enemyInstance
+                    }
+                    game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
+                end
+                wait(0.01)
+            end
+        end)
+    end
 end
 
-
-
--- Pastikan untuk memanggil fungsi createTrialTab dan createMainTab setelah key valid
+-- Memastikan fungsi createTrialTab dan createMainTab dipanggil setelah key valid
 if keyLoaded or checkKeyValid() then
     createTrialTab()
     createMainTab()
