@@ -108,6 +108,7 @@ KeySystemSection:AddButton({
             createGodTab()
             createFarmTab()
 	    createFruitFarmTab()
+	    createPickupTab()
         else
             OrionLib:MakeNotification({
                 Name = "Key Invalid",
@@ -757,13 +758,109 @@ function createFruitFarmTab()
     })
 end
 
+-- Fungsi untuk membuat tab Pickup
+function createPickupTab()
+    local PickupTab = Window:MakeTab({
+        Name = "Pickup",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
 
--- Menjalankan script jika key valid
+    -- Definisikan item pickup dan atur radius pickup
+    local pickupRadius = 200
+    local pickupFunctions = {}
+    
+    -- Tabel pickup dengan pengelompokan dan urutan alfabetis
+    local pickupToggles = {
+        Adurite = {"Raw Adurite", "Adurite Bar"},
+        Bloodfruit = {"Bloodfruit"},
+        Coal = {"Coal"},
+        Coin = {"Coin"},
+        CrystalChunk = {"Crystal Chunk"},
+        Emerald = {"Emerald"},
+        Essence = {"Essence"},
+        Gold = {"Big Gold Bar", "Raw Gold", "Gold Bar"},
+        Heartfruit = {"Heartfruit"},
+        Hellstone = {"Raw Hellstone", "Hellstone Bar"},
+        IceCube = {"Ice Cube"},
+        Iron = {"Raw Iron", "Iron Bar"},
+        KingHeart = {"King Heart"},
+        Leaves = {"Leaves"},
+        Log = {"Log"},
+        Magnetite = {"Raw Magnetite", "Magnetite"},
+        Meat = {"Cooked Meat", "Raw Meat"}, -- Gabungkan Cooked Meat dan Raw Meat di toggle Meat
+        Phantomite = {"Raw Phantomite", "Phantomite Bar"},
+        PinkDiamond = {"Pink Diamond"},
+        QueenHeart = {"Queen Heart"},
+        SerpentTail = {"Serpent Tail"},
+        SkeletonBone = {"Skeleton Bone"},
+        Soulite = {"Raw Soulite", "Soulite Bar"},
+        SpiritKey = {"Spirit Key"},
+        Steel = {"Steel Mix", "Steel Bar"},
+        Stick = {"Stick"},
+        Stone = {"Stone"},
+        Undead = {"Undead Stick", "Undead Meat", "Undead Heart"},
+        ZombieFlesh = {"Zombie Flesh"}
+    }
+
+    -- Sortir nama toggle secara alfabetis
+    local sortedKeys = {}
+    for key in pairs(pickupToggles) do
+        table.insert(sortedKeys, key)
+    end
+    table.sort(sortedKeys)
+
+    -- Fungsi untuk memulai pickup berdasarkan nama item
+    local function pickupItems(itemNames)
+        while pickupFunctions[itemNames] do
+            local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+            local nearbyItems = workspace.Important.Items:GetChildren()
+
+            for _, item in pairs(nearbyItems) do
+                if not pickupFunctions[itemNames] then break end
+                if table.find(itemNames, item.Name) then
+                    local itemPosition = item.Position
+                    local distance = (playerPosition - itemPosition).Magnitude
+                    
+                    if distance <= pickupRadius then
+                        spawn(function()
+                            pcall(function()
+                                game:GetService("ReplicatedStorage").Events.Pickup:InvokeServer(item)
+                            end)
+                        end)
+                    end
+                end
+            end
+            wait(0.1)
+        end
+    end
+
+    -- Buat toggle pickup untuk setiap jenis item di pickupToggles, diurutkan secara alfabetis
+    for _, name in ipairs(sortedKeys) do
+        local items = pickupToggles[name]
+        PickupTab:AddToggle({
+            Name = "Pickup " .. name,
+            Default = false,
+            Callback = function(Value)
+                pickupFunctions[items] = Value
+                if Value then
+                    spawn(function()
+                        pickupItems(items)
+                    end)
+                end
+            end
+        })
+    end
+end
+
+-- Pastikan untuk memanggil fungsi createPickupTab setelah key valid
 if keyLoaded or checkKeyValid() then
     createGodTab()
     createFarmTab()
     createFruitFarmTab()
+    createPickupTab()  -- Tambahkan ini agar tab Pickup muncul setelah key valid
 end
+
 
 -- Memulai UI
 OrionLib:Init()
