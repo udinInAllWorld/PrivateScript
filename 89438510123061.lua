@@ -143,7 +143,7 @@ function createTrialTab()
             and workspace.Server.Trial.Lobby.Easy_Screen.Frame:FindFirstChild("Value")
 
         if timeValue then
-            local contentTime = timeValue.ContentText
+            local contentTime = timeValue.Text or timeValue.Value or "N/A" -- Menyesuaikan properti yang tepat
             TimeLabel:Set(contentTime)
         else
             TimeLabel:Set("Time data not available")
@@ -285,45 +285,69 @@ function createMainTab()
         end
     })
 
-    -- Fungsi untuk mendapatkan ID pet dari player
-    function getPlayerPetID()
+    -- Fungsi untuk mendapatkan semua ID pet dari player
+    function getPlayerPetIDs()
+        local petIDs = {}
         local playerName = game.Players.LocalPlayer.Name
         for _, petFolder in pairs(workspace.Server.Pets:GetChildren()) do
             if petFolder.Name:match(playerName) then
-                return petFolder.Name
+                table.insert(petIDs, petFolder.Name)
             end
         end
-        return nil
+        return petIDs
     end
 
     -- Fungsi untuk menjalankan Auto Fight
     function startAutoFight()
         spawn(function()
-            local petID = getPlayerPetID()
-            if not petID then
+            local petIDs = getPlayerPetIDs()
+            if #petIDs == 0 then
                 OrionLib:MakeNotification({
-                    Name = "No Pet Found",
-                    Content = "Pet ID could not be found for the player.",
+                    Name = "No Pets Found",
+                    Content = "No pet IDs could be found for the player.",
                     Time = 5
                 })
                 return
             end
 
             while AutoFightEnabled and SelectedMap and SelectedEnemy do
-                local enemyInstance = workspace.Server.Enemies:FindFirstChild(SelectedMap)
-                    and workspace.Server.Enemies[SelectedMap]:FindFirstChild(SelectedEnemy)
+                for _, petID in ipairs(petIDs) do
+                    local enemyInstance = workspace.Server.Enemies:FindFirstChild(SelectedMap)
+                        and workspace.Server.Enemies[SelectedMap]:FindFirstChild(SelectedEnemy)
 
-                if enemyInstance then
-                    local args = {
-                        [1] = "General",
-                        [2] = "Pets",
-                        [3] = "Attack",
-                        [4] = petID,
-                        [5] = enemyInstance
-                    }
-                    game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
+                    if enemyInstance then
+                        local args = {
+                            [1] = "General",
+                            [2] = "Pets",
+                            [3] = "Attack",
+                            [4] = petID,
+                            [5] = enemyInstance
+                        }
+                        game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
+                    end
                 end
-                wait(0.01)
+
+                -- Mengecek apakah pet sudah tidak ada dalam Info.Pets
+                wait(0.5)  -- Delay untuk menghindari spam
+                for _, petID in ipairs(petIDs) do
+                    local enemyPetsFolder = workspace.Server.Enemies:FindFirstChild(SelectedMap)
+                        and workspace.Server.Enemies[SelectedMap]:FindFirstChild(SelectedEnemy)
+                        and workspace.Server.Enemies[SelectedMap][SelectedEnemy]:FindFirstChild("Info")
+                        and workspace.Server.Enemies[SelectedMap][SelectedEnemy].Info:FindFirstChild("Pets")
+
+                    if enemyPetsFolder and not enemyPetsFolder:FindFirstChild(petID) then
+                        -- Jika petID tidak ada di folder Info.Pets, kirim pet untuk menyerang lagi
+                        local args = {
+                            [1] = "General",
+                            [2] = "Pets",
+                            [3] = "Attack",
+                            [4] = petID,
+                            [5] = workspace.Server.Enemies[SelectedMap][SelectedEnemy]
+                        }
+                        game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
+                    end
+                end
+                wait(0.5)
             end
         end)
     end
