@@ -98,15 +98,16 @@ KeySystemSection:AddButton({
     Callback = function()
         if EnteredKey == correctKey then
             KeyValid = true
-            KeyExpireTime = os.time() + (60 * 60) -- Key berlaku selama 120 menit
+            KeyExpireTime = os.time() + (60 * 60) -- Key berlaku selama 60 menit
             saveKeyData()
             OrionLib:MakeNotification({
                 Name = "Key Accepted",
-                Content = "Your key is valid for the next 120 minutes.",
+                Content = "Your key is valid for the next 60 minutes.",
                 Time = 5
             })
             createGodTab()
             createFarmTab()
+	    createFruitFarmTab()
         else
             OrionLib:MakeNotification({
                 Name = "Key Invalid",
