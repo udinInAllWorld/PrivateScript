@@ -285,10 +285,10 @@ function createMainTab()
         end
     })
 
-    -- Fungsi untuk mendapatkan UUID dari pet ID
-    local function getPetUUID(petID)
-        return petID:match("%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x")
-    end
+-- Fungsi untuk mendapatkan UUID dari pet ID tanpa awalan tanda hubung
+local function getPetUUID(petID)
+    return petID:match("%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x")
+end
 
     -- Fungsi untuk mendapatkan semua UUID pet dari player
     function getPlayerPetUUIDs()
