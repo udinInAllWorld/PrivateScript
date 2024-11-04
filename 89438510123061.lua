@@ -107,6 +107,7 @@ KeySystemSection:AddButton({
             })
             createTrialTab()
             createMainTab()
+            createAutoStarsTab()
         else
             OrionLib:MakeNotification({
                 Name = "Key Invalid",
@@ -157,7 +158,85 @@ function createTrialTab()
             wait(1)
         end
     end)
+
+    -- Tambahkan Toggle untuk Auto Trial Easy di Tab Trial
+    local AutoTrialEasyEnabled = false
+
+    -- Toggle untuk Auto Trial Easy
+    AutoTrialEasyEnabled = false
+
+    TrialTab:AddToggle({
+        Name = "Auto Trial Easy",
+        Default = false,
+        Callback = function(Value)
+            AutoTrialEasyEnabled = Value
+            if AutoTrialEasyEnabled then
+                startAutoTrialFight()
+            end
+        end
+    })
 end
+
+
+-- Fungsi untuk memulai Auto Fight di Trial
+function startAutoTrialFight()
+    spawn(function()
+        local petUUIDs = getPlayerPetUUIDs()
+        if #petUUIDs == 0 then
+            OrionLib:MakeNotification({
+                Name = "No Pets Found",
+                Content = "No pet UUIDs could be found for the player.",
+                Time = 5
+            })
+            return
+        end
+
+        local difficultyOrder = {"Easy", "Medium", "Hard", "Insane", "Boss"}
+        local trialActive = true
+
+        while AutoTrialEasyEnabled and trialActive do
+            for _, difficulty in ipairs(difficultyOrder) do
+                local difficultyFolder = workspace.Server.Trial.Enemies:FindFirstChild(difficulty)
+                if difficultyFolder then
+                    for _, enemy in pairs(difficultyFolder:GetChildren()) do
+                        if enemy:FindFirstChild("Attributes") then
+                            enemy.Attributes.MaxHealth.Value = 10
+                            enemy.Attributes.Health.Value = 10
+                        end
+
+                        -- Serang musuh menggunakan pet sampai musuh hilang
+                        while enemy and enemy.Parent == difficultyFolder and AutoTrialEasyEnabled do
+                            for _, petUUID in ipairs(petUUIDs) do
+                                local args = {
+                                    [1] = "General",
+                                    [2] = "Pets",
+                                    [3] = "Attack",
+                                    [4] = petUUID,
+                                    [5] = enemy
+                                }
+                                game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
+                            end
+                            wait(0.5)
+                        end
+                    end
+                end
+            end
+
+            -- Periksa apakah trial telah selesai
+            local timerValue = game:GetService("Players").LocalPlayer.PlayerGui.UI.HUD.Trial.Frame.Timer.Value.UID
+            if not timerValue or timerValue == "00:00" then
+                trialActive = false
+            end
+            wait(1)
+        end
+
+        if AutoTrialEasyEnabled then
+            enableAutoFight()
+        end
+    end)
+end
+
+
 
 -- Fungsi untuk membuat Tab Main
 function createMainTab()
@@ -192,6 +271,42 @@ function createMainTab()
                 }
                 game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
                 wait(0.01)
+            end
+        end)
+    end
+
+    -- Tambahkan Toggle untuk Auto Collect di bawah Auto Click
+    local AutoCollectEnabled = false
+
+    MainTab:AddToggle({
+        Name = "Auto Collect",
+        Default = false,
+        Callback = function(Value)
+            AutoCollectEnabled = Value
+            if AutoCollectEnabled then
+                startAutoCollect()
+            end
+        end
+    })
+
+    -- Fungsi untuk menjalankan Auto Collect setiap 0.5 detik
+    function startAutoCollect()
+        spawn(function()
+            while AutoCollectEnabled do
+                for _, drop in pairs(workspace.Client.Drops:GetChildren()) do
+                    if drop:IsA("Model") or drop:IsA("Part") then
+                        -- Mengambil UUID dari nama item atau ID
+                        local dropUUID = drop.Name
+                        local args = {
+                            [1] = "General",
+                            [2] = "Drops",
+                            [3] = "Collect",
+                            [4] = dropUUID
+                        }
+                        game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
+                    end
+                end
+                wait(0.5) -- Menunggu 0.5 detik sebelum memeriksa lagi
             end
         end)
     end
@@ -285,10 +400,10 @@ function createMainTab()
         end
     })
 
--- Fungsi untuk mendapatkan UUID dari pet ID tanpa awalan tanda hubung
-local function getPetUUID(petID)
-    return petID:match("%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x")
-end
+    -- Fungsi untuk mendapatkan UUID dari pet ID tanpa awalan tanda hubung
+    local function getPetUUID(petID)
+        return petID:match("%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x")
+    end
 
     -- Fungsi untuk mendapatkan semua UUID pet dari player
     function getPlayerPetUUIDs()
@@ -361,10 +476,114 @@ end
     end
 end
 
+-- Fungsi untuk membuat Tab Auto Stars
+function createAutoStarsTab()
+    local AutoStarsTab = Window:MakeTab({
+        Name = "Auto Stars",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    -- Variabel untuk map dan currency yang dipilih
+    local SelectedMap = nil
+    local SelectedCurrency = nil
+    local AutoStarsEnabled = false
+
+    -- Mengisi Dropdown Map dengan nama-nama map dari workspace.Server.Stars
+    local MapOptions = {}
+    for _, mapFolder in pairs(workspace.Server.Stars:GetChildren()) do
+        if mapFolder:IsA("Folder") then
+            table.insert(MapOptions, mapFolder.Name)
+        end
+    end
+
+    -- Dropdown untuk memilih Map
+    AutoStarsTab:AddDropdown({
+        Name = "Map",
+        Default = "Select Map",
+        Options = MapOptions,
+        Callback = function(Value)
+            SelectedMap = Value
+            if SelectedMap and SelectedCurrency then
+                teleportToCurrency(SelectedMap, SelectedCurrency) -- Teleportasi jika kedua pilihan ada
+            end
+        end
+    })
+
+    -- Dropdown Currency tetap muncul dengan opsi default
+    local CurrencyOptions = {"Coins", "Tickets"} -- Opsi default untuk currency
+    AutoStarsTab:AddDropdown({
+        Name = "Currency",
+        Default = "Select Currency",
+        Options = CurrencyOptions,
+        Callback = function(Value)
+            SelectedCurrency = Value
+            if SelectedMap and SelectedCurrency then
+                teleportToCurrency(SelectedMap, SelectedCurrency) -- Teleportasi jika kedua pilihan ada
+            end
+        end
+    })
+
+    -- Toggle untuk mengaktifkan Auto Stars
+    AutoStarsTab:AddToggle({
+        Name = "Auto Stars",
+        Default = false,
+        Callback = function(Value)
+            AutoStarsEnabled = Value
+            if AutoStarsEnabled then
+                startAutoStars()
+            end
+        end
+    })
+
+    -- Fungsi untuk teleportasi pemain ke Currency yang dipilih
+    function teleportToCurrency(mapName, currencyName)
+        local mapFolder = workspace.Server.Stars:FindFirstChild(mapName)
+        if mapFolder then
+            local currencyFolder = mapFolder:FindFirstChild(currencyName)
+            if currencyFolder and currencyFolder:IsA("Model") and currencyFolder.PrimaryPart then
+                local player = game.Players.LocalPlayer
+                if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    player.Character.HumanoidRootPart.CFrame = currencyFolder.PrimaryPart.CFrame -- Teleport ke posisi PrimaryPart model
+                    OrionLib:MakeNotification({
+                        Name = "Teleport",
+                        Content = "Teleported to " .. currencyName .. " in " .. mapName,
+                        Time = 5
+                    })
+                else
+                    warn("Tidak dapat menemukan karakter pemain atau HumanoidRootPart.")
+                end
+            else
+                warn("Currency tidak ditemukan atau tidak memiliki PrimaryPart: " .. currencyName)
+            end
+        else
+            warn("Map tidak ditemukan: " .. mapName)
+        end
+    end
+
+    -- Fungsi untuk menjalankan Auto Stars
+    function startAutoStars()
+        spawn(function()
+            while AutoStarsEnabled and SelectedMap and SelectedCurrency do
+                local args = {
+                    [1] = "General",
+                    [2] = "Stars",
+                    [3] = "Open",
+                    [4] = SelectedMap,
+                    [5] = SelectedCurrency
+                }
+                game:GetService("ReplicatedStorage").Remotes.Bridge:FireServer(unpack(args))
+                wait(0.01) -- Jeda waktu untuk menghindari spam
+            end
+        end)
+    end
+end
+
 -- Memastikan fungsi createTrialTab dan createMainTab dipanggil setelah key valid
 if keyLoaded or checkKeyValid() then
     createTrialTab()
     createMainTab()
+    createAutoStarsTab() -- Panggil tab Auto Stars setelah validasi key
 end
 
 -- Memulai UI
