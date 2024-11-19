@@ -772,14 +772,16 @@ function createPickupTab()
     
     -- Tabel pickup dengan pengelompokan dan urutan alfabetis
     local pickupToggles = {
-        Adurite = {"Big Raw Adurite", "Raw Adurite", "Adurite Bar", "Big Adurite Bar"},
+        Adurite = {"Big Raw Adurite", "Raw Adurite"},
+	AduriteBar = {"Adurite Bar", "Big Adurite Bar"},
         Bloodfruit = {"Bloodfruit"},
         Coal = {"Coal", "Big Coal"},
         Coin = {"Coin"},
         CrystalChunk = {"Crystal Chunk"},
         Emerald = {"Emerald", "Big Emerald"},
         Essence = {"Essence", "Big Essence"},
-        Gold = {"Big Gold Bar", "Raw Gold", "Big Raw Gold", "Gold Bar", "Big Gold Bar"},
+        Gold = {"Raw Gold", "Big Raw Gold"},
+	GoldBar = {"Gold Bar", "Big Gold Bar"},
         Heartfruit = {"Heartfruit"},
         Hellstone = {"Big Raw Hellstone", "Raw Hellstone", "Big Hellstone Bar", "Hellstone Bar"},
 	Hide = {"Hide", "Fire Hide"},
