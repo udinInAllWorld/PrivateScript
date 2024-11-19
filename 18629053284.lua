@@ -5,7 +5,7 @@ local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shl
 local KeyValid = false
 local KeyExpireTime = nil
 local correctKey = "survival" -- Key yang valid
-local saveFile = "KeySave_survivalOdyssey.txt"
+local saveFile = "KeysurvivalOdyssey.txt"
 
 -- Fungsi untuk memeriksa apakah key masih valid
 local function checkKeyValid()
