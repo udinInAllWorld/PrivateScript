@@ -109,6 +109,7 @@ KeySystemSection:AddButton({
             createFarmTab()
 	    createFruitFarmTab()
 	    createPickupTab()
+	    createAutoTab()
         else
             OrionLib:MakeNotification({
                 Name = "Key Invalid",
@@ -856,12 +857,96 @@ function createPickupTab()
     end
 end
 
+-- Tab Baru untuk Auto Health dan Auto Food
+local AutoTab = Window:MakeTab({
+    Name = "Auto Features",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Variabel untuk menyimpan status Auto Health dan Auto Food
+local autoHealthEnabled = false
+local autoFoodEnabled = false
+
+-- Fungsi untuk menjalankan Auto Health
+local function runAutoHealth()
+    while autoHealthEnabled do
+        local healthText = game:GetService("Players").LocalPlayer.PlayerGui.MainGui.Panels.Stats.List.Health.NumberLabel.Text
+        local currentHealth = tonumber(healthText)
+        if currentHealth <= 80 then
+            -- Menjalankan fungsi Auto Health
+            local args = { [1] = 1 }
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("UseBagItem"):FireServer(unpack(args))
+        end
+        wait(0.1)
+    end
+end
+
+-- Fungsi untuk menjalankan Auto Food
+local function runAutoFood()
+    while autoFoodEnabled do
+        local foodText = game:GetService("Players").LocalPlayer.PlayerGui.MainGui.Panels.Stats.List.Food.NumberLabel.Text
+        local currentFood = tonumber(foodText)
+        if currentFood <= 90 then
+            -- Menjalankan fungsi Auto Food
+            local args = { [1] = 1 }
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("UseBagItem"):FireServer(unpack(args))
+        end
+        wait(0.1)
+    end
+end
+
+-- Toggle untuk Auto Health
+AutoTab:AddToggle({
+    Name = "Auto Health",
+    Default = false,
+    Callback = function(state)
+        autoHealthEnabled = state
+        if state then
+            -- Tampilkan notifikasi
+            OrionLib:MakeNotification({
+                Name = "Auto Health",
+                Content = "Place your health item in bag slot 1.",
+                Time = 3
+            })
+            -- Mulai fungsi Auto Health
+            spawn(runAutoHealth)
+        else
+            -- Hentikan fungsi Auto Health
+            autoHealthEnabled = false
+        end
+    end
+})
+
+-- Toggle untuk Auto Food
+AutoTab:AddToggle({
+    Name = "Auto Food",
+    Default = false,
+    Callback = function(state)
+        autoFoodEnabled = state
+        if state then
+            -- Tampilkan notifikasi
+            OrionLib:MakeNotification({
+                Name = "Auto Food",
+                Content = "Place your food item in bag slot 2.",
+                Time = 3
+            })
+            -- Mulai fungsi Auto Food
+            spawn(runAutoFood)
+        else
+            -- Hentikan fungsi Auto Food
+            autoFoodEnabled = false
+        end
+    end
+})
+
 -- Pastikan untuk memanggil fungsi createPickupTab setelah key valid
 if keyLoaded or checkKeyValid() then
     createGodTab()
     createFarmTab()
     createFruitFarmTab()
     createPickupTab()  -- Tambahkan ini agar tab Pickup muncul setelah key valid
+    createAutoTab()
 end
 
 
