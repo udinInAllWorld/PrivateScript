@@ -1117,6 +1117,62 @@ end
     })
 end
 
+-- Fungsi Auto Rebirth
+local function runAutoRebirth()
+    while autoRebirthEnabled do
+        -- Dapatkan referensi ke TextLabel
+        local essenceLabel = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("MainGui")
+            and game.Players.LocalPlayer.PlayerGui.MainGui.Panels.Topbar.EssenceBar.TextLabel
+
+        if essenceLabel then
+            -- Ambil nilai Level dari TextLabel
+            local currentLevel = tonumber(essenceLabel.Text)
+
+            -- Jika Level 100, jalankan fungsi Rebirth
+            if currentLevel and currentLevel >= 100 then
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Rebirth"):FireServer()
+
+                -- Notifikasi
+                OrionLib:MakeNotification({
+                    Name = "Auto Rebirth",
+                    Content = "Rebirth executed at Level 100.",
+                    Time = 5
+                })
+
+                -- Tunggu beberapa detik sebelum memeriksa kembali untuk menghindari spam
+                wait(5)
+            end
+        else
+            -- Notifikasi jika TextLabel tidak ditemukan
+            OrionLib:MakeNotification({
+                Name = "Auto Rebirth",
+                Content = "EssenceBar TextLabel not found. Check your UI structure.",
+                Time = 3
+            })
+            break
+        end
+
+        wait(1) -- Jeda kecil sebelum memeriksa ulang level
+    end
+
+    OrionLib:MakeNotification({
+        Name = "Auto Rebirth",
+        Content = "Auto Rebirth stopped.",
+        Time = 3
+    })
+end
+
+-- Tambahkan Toggle untuk Auto Rebirth
+AutoFeaturesTab:AddToggle({
+    Name = "Auto Rebirth",
+    Default = false,
+    Callback = function(state)
+        autoRebirthEnabled = state
+        if state then
+            spawn(runAutoRebirth) -- Jalankan Auto Rebirth dalam thread terpisah
+        end
+    end
+})
 
 -- Pastikan untuk memanggil fungsi createPickupTab setelah key valid
 if keyLoaded or checkKeyValid() then
