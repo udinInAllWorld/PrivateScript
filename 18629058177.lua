@@ -5,7 +5,7 @@ local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shl
 local KeyValid = false
 local KeyExpireTime = nil
 local correctKey = "survival" -- Key yang valid
-local saveFile = "KeySave_SurvivalOdyssey.txt"
+local saveFile = "KeyVoid_SurvivalOdyssey.txt"
 
 -- Fungsi untuk memeriksa apakah key masih valid
 local function checkKeyValid()
@@ -66,6 +66,15 @@ local KeyTab = Window:MakeTab({
     PremiumOnly = false
 })
 
+-- Fungsi untuk membuat tab lainnya hanya jika key valid
+local function createTabs()
+    createGodTab()
+    createFarmTab()
+    createFruitFarmTab()
+    createPickupTab()
+    createAutoFeaturesTab()
+end
+
 -- Membuat Section Key System
 local KeySystemSection = KeyTab:AddSection({
     Name = "Key System"
@@ -105,11 +114,7 @@ KeySystemSection:AddButton({
                 Content = "Your key is valid for the next 60 minutes.",
                 Time = 5
             })
-            createGodTab()
-            createFarmTab()
-	    createFruitFarmTab()
-	    createPickupTab()
-	    createAutoTab()
+	createTabs() -- Membuat semua tab setelah key valid
         else
             OrionLib:MakeNotification({
                 Name = "Key Invalid",
@@ -940,15 +945,294 @@ AutoTab:AddToggle({
     end
 })
 
--- Pastikan untuk memanggil fungsi createPickupTab setelah key valid
-if keyLoaded or checkKeyValid() then
-    createGodTab()
-    createFarmTab()
-    createFruitFarmTab()
-    createPickupTab()  -- Tambahkan ini agar tab Pickup muncul setelah key valid
-    createAutoTab()
+-- Fungsi untuk membuat tab Auto Features
+function createAutoFeaturesTab()
+    -- Membuat tab Auto Features
+    local AutoFeaturesTab = Window:MakeTab({
+        Name = "Auto Features",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    -- Debug jika tab gagal dibuat
+    if not AutoFeaturesTab then
+        error("Failed to create Auto Features tab. Ensure the Window is initialized.")
+        return
+    end
+
+    -- Variabel untuk status Auto Features
+    local autoHealthEnabled = false
+    local autoFoodEnabled = false
+    local autoVoodooEnabled = false
+    local autoGodsEnabled = false
+
+    -- Fungsi Auto Health
+    local function runAutoHealth()
+        while autoHealthEnabled do
+            local healthText = game.Players.LocalPlayer.PlayerGui.MainGui.Panels.Stats.List.Health.NumberLabel.Text
+            local currentHealth = tonumber(healthText)
+            if currentHealth and currentHealth <= 80 then
+                -- Gunakan item kesehatan di bag slot 1
+                local args = { [1] = 1 }
+                game:GetService("ReplicatedStorage").Events.UseBagItem:FireServer(unpack(args))
+            end
+            wait(0.1)
+        end
+    end
+
+    -- Fungsi Auto Food
+    local function runAutoFood()
+        while autoFoodEnabled do
+            local foodText = game.Players.LocalPlayer.PlayerGui.MainGui.Panels.Stats.List.Food.NumberLabel.Text
+            local currentFood = tonumber(foodText)
+            if currentFood and currentFood <= 90 then
+                -- Gunakan item makanan di bag slot 2
+                local args = { [1] = 2 }
+                game:GetService("ReplicatedStorage").Events.UseBagItem:FireServer(unpack(args))
+            end
+            wait(0.1)
+        end
+    end
+
+    -- Fungsi Auto Voodoo
+    local function runAutoVoodoo()
+        while autoVoodooEnabled do
+            local healthText = game.Players.LocalPlayer.PlayerGui.MainGui.Panels.Stats.List.Health.NumberLabel.Text
+            local voodooText = game.Players.LocalPlayer.PlayerGui.MainGui.Panels.Stats.List.Voodoo.NumberLabel.Text
+            local currentHealth = tonumber(healthText)
+            local currentVoodoo = tonumber(voodooText)
+
+            if currentHealth and currentVoodoo and currentHealth <= 50 and currentVoodoo == 100 then
+                -- Gunakan Voodoo Spell
+                local args = {
+                    [1] = Vector3.new(628.7835083007812, -146.5078887939453, 44.465423583984375)
+                }
+                game:GetService("ReplicatedStorage").Events.VoodooSpell:FireServer(unpack(args))
+            end
+            wait(0.1)
+        end
+    end
+
+-- Fungsi Auto Gods
+local function runAutoGods()
+    local godsFolder = workspace:FindFirstChild("Map") and workspace.Map.Resources:FindFirstChild("Gods")
+
+    if not godsFolder then
+        OrionLib:MakeNotification({
+            Name = "Auto Gods",
+            Content = "No Gods folder found in the workspace.",
+            Time = 3
+        })
+        return
+    end
+
+    -- Loop utama Auto Gods
+    while autoGodsEnabled do
+        local godsModels = godsFolder:GetChildren()
+
+        -- Jika tidak ada model, tunggu hingga ada
+        if #godsModels == 0 then
+            OrionLib:MakeNotification({
+                Name = "Auto Gods",
+                Content = "No gods available. Waiting for respawn...",
+                Time = 3
+            })
+            repeat
+                wait(2)
+                godsModels = godsFolder:GetChildren()
+            until #godsModels > 0 or not autoGodsEnabled
+        end
+
+        -- Iterasi melalui semua model Gods
+        for _, godModel in ipairs(godsModels) do
+            if not autoGodsEnabled then break end
+
+            -- Lewati model "Frozen Giant"
+            if godModel.Name == "Frozen Giant" then
+                continue
+            end
+
+            if godModel:IsA("Model") then
+                -- Tentukan target posisi
+                local targetPosition
+                if godModel:FindFirstChild("PrimaryPart") then
+                    targetPosition = godModel.PrimaryPart.Position + Vector3.new(0, 10, 0)
+                elseif godModel:GetPivot() then
+                    targetPosition = godModel:GetPivot().Position + Vector3.new(0, 10, 0)
+                else
+                    -- Hitung rata-rata posisi jika PrimaryPart dan Pivot tidak ada
+                    local parts = godModel:GetDescendants()
+                    local totalPosition = Vector3.new(0, 0, 0)
+                    local count = 0
+
+                    for _, part in ipairs(parts) do
+                        if part:IsA("BasePart") then
+                            totalPosition = totalPosition + part.Position
+                            count = count + 1
+                        end
+                    end
+
+                    if count > 0 then
+                        targetPosition = (totalPosition / count) + Vector3.new(0, 10, 0)
+                    else
+                        continue
+                    end
+                end
+
+                -- Teleport pemain ke posisi target
+                local player = game.Players.LocalPlayer
+                local character = player.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+
+                    OrionLib:MakeNotification({
+                        Name = "Auto Gods",
+                        Content = "Teleported to " .. godModel.Name .. ". Waiting for removal.",
+                        Time = 5
+                    })
+
+                    -- Tunggu hingga model dihapus atau toggle dimatikan
+                    local startTime = os.time()
+                    while godModel.Parent == godsFolder and autoGodsEnabled do
+                        wait(1)
+                    end
+
+                    -- Tunggu tambahan 3 detik sebelum berpindah
+                    wait(3)
+                end
+            end
+        end
+
+        wait(1) -- Jeda antar iterasi loop utama
+    end
+
+    OrionLib:MakeNotification({
+        Name = "Auto Gods",
+        Content = "Auto Gods stopped.",
+        Time = 3
+    })
 end
 
+    -- Tambahkan Toggle untuk Auto Health
+    AutoFeaturesTab:AddToggle({
+        Name = "Auto Health",
+        Default = false,
+        Callback = function(state)
+            autoHealthEnabled = state
+            if state then
+                OrionLib:MakeNotification({
+                    Name = "Auto Health",
+                    Content = "Place your health item in bag slot 1.",
+                    Time = 3
+                })
+                spawn(runAutoHealth)
+            end
+        end
+    })
+
+    -- Tambahkan Toggle untuk Auto Food
+    AutoFeaturesTab:AddToggle({
+        Name = "Auto Food",
+        Default = false,
+        Callback = function(state)
+            autoFoodEnabled = state
+            if state then
+                OrionLib:MakeNotification({
+                    Name = "Auto Food",
+                    Content = "Place your food item in bag slot 2.",
+                    Time = 3
+                })
+                spawn(runAutoFood)
+            end
+        end
+    })
+
+    -- Tambahkan Toggle untuk Auto Voodoo
+    AutoFeaturesTab:AddToggle({
+        Name = "Auto VoodooSpell",
+        Default = false,
+        Callback = function(state)
+            autoVoodooEnabled = state
+            if state then
+                spawn(runAutoVoodoo)
+            end
+        end
+    })
+
+    -- Tambahkan Toggle untuk Auto Gods
+    AutoFeaturesTab:AddToggle({
+        Name = "Auto Gods",
+        Default = false,
+        Callback = function(state)
+            autoGodsEnabled = state
+            if state then
+                spawn(runAutoGods)
+            end
+        end
+    })
+end
+
+-- Fungsi Auto Rebirth
+local function runAutoRebirth()
+    while autoRebirthEnabled do
+        -- Dapatkan referensi ke TextLabel
+        local essenceLabel = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("MainGui")
+            and game.Players.LocalPlayer.PlayerGui.MainGui.Panels.Topbar.EssenceBar.TextLabel
+
+        if essenceLabel then
+            -- Ambil nilai Level dari TextLabel
+            local currentLevel = tonumber(essenceLabel.Text)
+
+            -- Jika Level 100, jalankan fungsi Rebirth
+            if currentLevel and currentLevel >= 100 then
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Rebirth"):FireServer()
+
+                -- Notifikasi
+                OrionLib:MakeNotification({
+                    Name = "Auto Rebirth",
+                    Content = "Rebirth executed at Level 100.",
+                    Time = 5
+                })
+
+                -- Tunggu beberapa detik sebelum memeriksa kembali untuk menghindari spam
+                wait(5)
+            end
+        else
+            -- Notifikasi jika TextLabel tidak ditemukan
+            OrionLib:MakeNotification({
+                Name = "Auto Rebirth",
+                Content = "EssenceBar TextLabel not found. Check your UI structure.",
+                Time = 3
+            })
+            break
+        end
+
+        wait(1) -- Jeda kecil sebelum memeriksa ulang level
+    end
+
+    OrionLib:MakeNotification({
+        Name = "Auto Rebirth",
+        Content = "Auto Rebirth stopped.",
+        Time = 3
+    })
+end
+
+-- Tambahkan Toggle untuk Auto Rebirth
+AutoFeaturesTab:AddToggle({
+    Name = "Auto Rebirth",
+    Default = false,
+    Callback = function(state)
+        autoRebirthEnabled = state
+        if state then
+            spawn(runAutoRebirth) -- Jalankan Auto Rebirth dalam thread terpisah
+        end
+    end
+})
+
+-- Pastikan untuk memanggil fungsi createPickupTab setelah key valid
+if keyLoaded or checkKeyValid() then
+	createTabs()
+end
 
 -- Memulai UI
 OrionLib:Init()
