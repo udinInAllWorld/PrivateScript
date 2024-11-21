@@ -910,6 +910,7 @@ function createAutoFeaturesTab()
     local autoFoodEnabled = false
     local autoVoodooEnabled = false
     local autoGodsEnabled = false
+    local autoRebirthEnabled = false
 
     -- Fungsi Auto Health
     local function runAutoHealth()
@@ -958,102 +959,149 @@ function createAutoFeaturesTab()
         end
     end
 
--- Fungsi Auto Gods
-local function runAutoGods()
-    local godsFolder = workspace:FindFirstChild("Map") and workspace.Map.Resources:FindFirstChild("Gods")
+    -- Fungsi Auto Gods
+    local function runAutoGods()
+        local godsFolder = workspace:FindFirstChild("Map") and workspace.Map.Resources:FindFirstChild("Gods")
 
-    if not godsFolder then
-        OrionLib:MakeNotification({
-            Name = "Auto Gods",
-            Content = "No Gods folder found in the workspace.",
-            Time = 3
-        })
-        return
-    end
-
-    -- Loop utama Auto Gods
-    while autoGodsEnabled do
-        local godsModels = godsFolder:GetChildren()
-
-        -- Jika tidak ada model, tunggu hingga ada
-        if #godsModels == 0 then
+        if not godsFolder then
             OrionLib:MakeNotification({
                 Name = "Auto Gods",
-                Content = "No gods available. Waiting for respawn...",
+                Content = "No Gods folder found in the workspace.",
                 Time = 3
             })
-            repeat
-                wait(2)
-                godsModels = godsFolder:GetChildren()
-            until #godsModels > 0 or not autoGodsEnabled
+            return
         end
 
-        -- Iterasi melalui semua model Gods
-        for _, godModel in ipairs(godsModels) do
-            if not autoGodsEnabled then break end
+        -- Loop utama Auto Gods
+        while autoGodsEnabled do
+            local godsModels = godsFolder:GetChildren()
 
-            -- Lewati model "Frozen Giant"
-            if godModel.Name == "Frozen Giant" then
-                continue
+            -- Jika tidak ada model, tunggu hingga ada
+            if #godsModels == 0 then
+                OrionLib:MakeNotification({
+                    Name = "Auto Gods",
+                    Content = "No gods available. Waiting for respawn...",
+                    Time = 3
+                })
+                repeat
+                    wait(2)
+                    godsModels = godsFolder:GetChildren()
+                until #godsModels > 0 or not autoGodsEnabled
             end
 
-            if godModel:IsA("Model") then
-                -- Tentukan target posisi
-                local targetPosition
-                if godModel:FindFirstChild("PrimaryPart") then
-                    targetPosition = godModel.PrimaryPart.Position + Vector3.new(0, 10, 0)
-                elseif godModel:GetPivot() then
-                    targetPosition = godModel:GetPivot().Position + Vector3.new(0, 10, 0)
-                else
-                    -- Hitung rata-rata posisi jika PrimaryPart dan Pivot tidak ada
-                    local parts = godModel:GetDescendants()
-                    local totalPosition = Vector3.new(0, 0, 0)
-                    local count = 0
+            -- Iterasi melalui semua model Gods
+            for _, godModel in ipairs(godsModels) do
+                if not autoGodsEnabled then break end
 
-                    for _, part in ipairs(parts) do
-                        if part:IsA("BasePart") then
-                            totalPosition = totalPosition + part.Position
-                            count = count + 1
+                -- Lewati model "Frozen Giant"
+                if godModel.Name == "Frozen Giant" then
+                    continue
+                end
+
+                if godModel:IsA("Model") then
+                    -- Tentukan target posisi
+                    local targetPosition
+                    if godModel:FindFirstChild("PrimaryPart") then
+                        targetPosition = godModel.PrimaryPart.Position + Vector3.new(0, 10, 0)
+                    elseif godModel:GetPivot() then
+                        targetPosition = godModel:GetPivot().Position + Vector3.new(0, 10, 0)
+                    else
+                        -- Hitung rata-rata posisi jika PrimaryPart dan Pivot tidak ada
+                        local parts = godModel:GetDescendants()
+                        local totalPosition = Vector3.new(0, 0, 0)
+                        local count = 0
+
+                        for _, part in ipairs(parts) do
+                            if part:IsA("BasePart") then
+                                totalPosition = totalPosition + part.Position
+                                count = count + 1
+                            end
+                        end
+
+                        if count > 0 then
+                            targetPosition = (totalPosition / count) + Vector3.new(0, 10, 0)
+                        else
+                            continue
                         end
                     end
 
-                    if count > 0 then
-                        targetPosition = (totalPosition / count) + Vector3.new(0, 10, 0)
-                    else
-                        continue
+                    -- Teleport pemain ke posisi target
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character
+                    if character and character:FindFirstChild("HumanoidRootPart") then
+                        character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+
+                        OrionLib:MakeNotification({
+                            Name = "Auto Gods",
+                            Content = "Teleported to " .. godModel.Name .. ". Waiting for removal.",
+                            Time = 5
+                        })
+
+                        -- Tunggu hingga model dihapus atau toggle dimatikan
+                        local startTime = os.time()
+                        while godModel.Parent == godsFolder and autoGodsEnabled do
+                            wait(1)
+                        end
+
+                        -- Tunggu tambahan 3 detik sebelum berpindah
+                        wait(3)
                     end
-                end
-
-                -- Teleport pemain ke posisi target
-                local player = game.Players.LocalPlayer
-                local character = player.Character
-                if character and character:FindFirstChild("HumanoidRootPart") then
-                    character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
-
-                    OrionLib:MakeNotification({
-                        Name = "Auto Gods",
-                        Content = "Teleported to " .. godModel.Name .. ". Waiting for removal.",
-                        Time = 5
-                    })
-
-                    -- Tunggu hingga model dihapus atau toggle dimatikan
-                    local startTime = os.time()
-                    while godModel.Parent == godsFolder and autoGodsEnabled do
-                        wait(1)
-                    end
-
-                    -- Tunggu tambahan 3 detik sebelum berpindah
-                    wait(3)
                 end
             end
+
+            wait(1) -- Jeda antar iterasi loop utama
         end
 
-        wait(1) -- Jeda antar iterasi loop utama
+        OrionLib:MakeNotification({
+            Name = "Auto Gods",
+            Content = "Auto Gods stopped.",
+            Time = 3
+        })
+    end
+
+-- Fungsi Auto Rebirth
+local function runAutoRebirth()
+    while autoRebirthEnabled do
+        -- Coba mendapatkan referensi ke TextLabel
+        local essenceLabel = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("MainGui")
+            and game.Players.LocalPlayer.PlayerGui.MainGui.Panels.Topbar:FindFirstChild("EssenceBar")
+            and game.Players.LocalPlayer.PlayerGui.MainGui.Panels.Topbar.EssenceBar:FindFirstChild("TextLabel")
+
+        if essenceLabel then
+            -- Ambil nilai teks dan hapus kata "Level" untuk mendapatkan angka
+            local textContent = essenceLabel.Text
+            local currentLevel = tonumber(textContent:match("%d+")) -- Menemukan angka dalam teks
+
+            -- Jalankan fungsi rebirth jika level mencapai 100 atau lebih
+            if currentLevel and currentLevel >= 100 then
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Rebirth"):FireServer()
+
+                -- Notifikasi
+                OrionLib:MakeNotification({
+                    Name = "Auto Rebirth",
+                    Content = "Rebirth executed at Level " .. currentLevel .. ".",
+                    Time = 5
+                })
+
+                -- Tunggu beberapa detik sebelum memeriksa kembali untuk menghindari spam
+                wait(5)
+            end
+        else
+            -- Notifikasi jika TextLabel tidak ditemukan
+            OrionLib:MakeNotification({
+                Name = "Auto Rebirth",
+                Content = "EssenceBar TextLabel not found. Check your UI structure.",
+                Time = 3
+            })
+            break
+        end
+
+        wait(1) -- Jeda kecil sebelum memeriksa ulang level
     end
 
     OrionLib:MakeNotification({
-        Name = "Auto Gods",
-        Content = "Auto Gods stopped.",
+        Name = "Auto Rebirth",
+        Content = "Auto Rebirth stopped.",
         Time = 3
     })
 end
@@ -1115,64 +1163,19 @@ end
             end
         end
     })
-end
 
--- Fungsi Auto Rebirth
-local function runAutoRebirth()
-    while autoRebirthEnabled do
-        -- Dapatkan referensi ke TextLabel
-        local essenceLabel = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("MainGui")
-            and game.Players.LocalPlayer.PlayerGui.MainGui.Panels.Topbar.EssenceBar.TextLabel
-
-        if essenceLabel then
-            -- Ambil nilai Level dari TextLabel
-            local currentLevel = tonumber(essenceLabel.Text)
-
-            -- Jika Level 100, jalankan fungsi Rebirth
-            if currentLevel and currentLevel >= 100 then
-                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Rebirth"):FireServer()
-
-                -- Notifikasi
-                OrionLib:MakeNotification({
-                    Name = "Auto Rebirth",
-                    Content = "Rebirth executed at Level 100.",
-                    Time = 5
-                })
-
-                -- Tunggu beberapa detik sebelum memeriksa kembali untuk menghindari spam
-                wait(5)
-            end
-        else
-            -- Notifikasi jika TextLabel tidak ditemukan
-            OrionLib:MakeNotification({
-                Name = "Auto Rebirth",
-                Content = "EssenceBar TextLabel not found. Check your UI structure.",
-                Time = 3
-            })
-            break
-        end
-
-        wait(1) -- Jeda kecil sebelum memeriksa ulang level
-    end
-
-    OrionLib:MakeNotification({
+    -- Tambahkan Toggle untuk Auto Rebirth
+    AutoFeaturesTab:AddToggle({
         Name = "Auto Rebirth",
-        Content = "Auto Rebirth stopped.",
-        Time = 3
+        Default = false,
+        Callback = function(state)
+            autoRebirthEnabled = state
+            if state then
+                spawn(runAutoRebirth)
+            end
+        end
     })
 end
-
--- Tambahkan Toggle untuk Auto Rebirth
-AutoFeaturesTab:AddToggle({
-    Name = "Auto Rebirth",
-    Default = false,
-    Callback = function(state)
-        autoRebirthEnabled = state
-        if state then
-            spawn(runAutoRebirth) -- Jalankan Auto Rebirth dalam thread terpisah
-        end
-    end
-})
 
 -- Pastikan untuk memanggil fungsi createPickupTab setelah key valid
 if keyLoaded or checkKeyValid() then
