@@ -936,105 +936,153 @@ function createAutoFeaturesTab()
         end
     end
 
-    -- Fungsi Auto Gods
-    local function runAutoGods()
-        local godsFolder = workspace:FindFirstChild("Map") and workspace.Map.Resources:FindFirstChild("Gods")
+-- Status global
+local autoGodsAndGoldEnabled = false
+local autoGoldEnabled = false
+local autoGodsEnabled = false
 
-        if not godsFolder then
-            OrionLib:MakeNotification({
-                Name = "Auto Gods",
-                Content = "No Gods folder found in the workspace.",
-                Time = 3
-            })
-            return
+-- AutoGodsAndGold
+local function runAutoGodsAndGold()
+    local godsFolder = workspace:FindFirstChild("Map") and workspace.Map.Resources:FindFirstChild("Gods")
+    local goldNodeFolder = workspace.Map.Resources:FindFirstChild("Gold Node")
+    local goldStoneFolder = workspace.Map.Resources:FindFirstChild("Gold Stone")
+
+    if not godsFolder then
+        OrionLib:MakeNotification({
+            Name = "Auto Gods + Auto Gold",
+            Content = "No Gods folder found in the workspace.",
+            Time = 3
+        })
+        return
+    end
+
+    -- Loop utama untuk Auto Gods + Auto Gold
+    while autoGodsAndGoldEnabled do
+        local godsModels = godsFolder:GetChildren()
+
+        -- Filter gods untuk mengecualikan "Frozen Giant"
+        local validGods = {}
+        for _, godModel in ipairs(godsModels) do
+            if godModel:IsA("Model") and godModel.Name ~= "Frozen Giant" then
+                table.insert(validGods, godModel)
+            end
         end
 
-        -- Loop utama Auto Gods
-        while autoGodsEnabled do
-            local godsModels = godsFolder:GetChildren()
+        -- Jika tidak ada gods, jalankan Auto Gold
+        if #validGods == 0 then
+            OrionLib:MakeNotification({
+                Name = "Auto Gods + Auto Gold",
+                Content = "No gods available. Running Auto Gold...",
+                Time = 5
+            })
 
-            -- Jika tidak ada model, tunggu hingga ada
-            if #godsModels == 0 then
-                OrionLib:MakeNotification({
-                    Name = "Auto Gods",
-                    Content = "No gods available. Waiting for respawn...",
-                    Time = 3
-                })
-                repeat
-                    wait(2)
-                    godsModels = godsFolder:GetChildren()
-                until #godsModels > 0 or not autoGodsEnabled
-            end
+            if goldNodeFolder or goldStoneFolder then
+                local goldPaths = {goldNodeFolder, goldStoneFolder}
+                for _, goldFolder in ipairs(goldPaths) do
+                    if not autoGodsAndGoldEnabled then break end
 
-            -- Iterasi melalui semua model Gods
-            for _, godModel in ipairs(godsModels) do
-                if not autoGodsEnabled then break end
+                    if goldFolder then
+                        local goldModels = goldFolder:GetChildren()
+                        for _, goldModel in ipairs(goldModels) do
+                            if not autoGodsAndGoldEnabled then break end
+                            if goldModel:IsA("Model") and goldModel:FindFirstChild("Reference") then
+                                local targetPosition = goldModel.Reference.Position + Vector3.new(0, 10, 0)
+                                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
 
-                -- Lewati model "Frozen Giant"
-                if godModel.Name == "Frozen Giant" then
-                    continue
-                end
+                                -- Tunggu hingga model dihapus
+                                while goldModel.Parent == goldFolder and autoGodsAndGoldEnabled do
+                                    wait(1)
+                                end
 
-                if godModel:IsA("Model") then
-                    -- Tentukan target posisi
-                    local targetPosition
-                    if godModel:FindFirstChild("PrimaryPart") then
-                        targetPosition = godModel.PrimaryPart.Position + Vector3.new(0, 10, 0)
-                    elseif godModel:GetPivot() then
-                        targetPosition = godModel:GetPivot().Position + Vector3.new(0, 10, 0)
-                    else
-                        -- Hitung rata-rata posisi jika PrimaryPart dan Pivot tidak ada
-                        local parts = godModel:GetDescendants()
-                        local totalPosition = Vector3.new(0, 0, 0)
-                        local count = 0
-
-                        for _, part in ipairs(parts) do
-                            if part:IsA("BasePart") then
-                                totalPosition = totalPosition + part.Position
-                                count = count + 1
+                                -- Jeda sebelum berpindah ke resource berikutnya
+                                wait(3)
                             end
                         end
-
-                        if count > 0 then
-                            targetPosition = (totalPosition / count) + Vector3.new(0, 10, 0)
-                        else
-                            continue
-                        end
                     end
+                end
+            end
 
-                    -- Teleport pemain ke posisi target
-                    local player = game.Players.LocalPlayer
-                    local character = player.Character
-                    if character and character:FindFirstChild("HumanoidRootPart") then
-                        character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+            -- Tunggu sebentar sebelum mengecek kembali gods
+            wait(5)
+        else
+            -- Jalankan Auto Gods
+            for _, godModel in ipairs(validGods) do
+                if not autoGodsAndGoldEnabled then break end
+                local targetPosition = godModel:GetPivot().Position + Vector3.new(0, 10, 0)
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
 
-                        OrionLib:MakeNotification({
-                            Name = "Auto Gods",
-                            Content = "Teleported to " .. godModel.Name .. ". Waiting for removal.",
-                            Time = 5
-                        })
+                -- Tunggu hingga god dihapus
+                while godModel.Parent == godsFolder and autoGodsAndGoldEnabled do
+                    wait(1)
+                end
 
-                        -- Tunggu hingga model dihapus atau toggle dimatikan
-                        local startTime = os.time()
-                        while godModel.Parent == godsFolder and autoGodsEnabled do
+                -- Jeda sebelum berpindah ke god berikutnya
+                wait(3)
+            end
+        end
+
+        wait(1)
+    end
+
+    OrionLib:MakeNotification({
+        Name = "Auto Gods + Auto Gold",
+        Content = "Stopped.",
+        Time = 3
+    })
+end
+
+-- Auto Gods
+
+local function runAutoGold()
+    local goldNodeFolder = workspace.Map.Resources:FindFirstChild("Gold Node")
+    local goldStoneFolder = workspace.Map.Resources:FindFirstChild("Gold Stone")
+
+    if not goldNodeFolder and not goldStoneFolder then
+        OrionLib:MakeNotification({
+            Name = "Auto Gold",
+            Content = "No Gold folder found in the workspace.",
+            Time = 3
+        })
+        return
+    end
+
+    -- Gabungkan kedua folder Gold Node dan Gold Stone
+    local goldPaths = {goldNodeFolder, goldStoneFolder}
+
+    -- Loop utama Auto Gold
+    while autoGoldEnabled do
+        for _, goldFolder in ipairs(goldPaths) do
+            if not autoGoldEnabled then break end
+
+            if goldFolder then
+                local goldModels = goldFolder:GetChildren()
+                for _, goldModel in ipairs(goldModels) do
+                    if not autoGoldEnabled then break end
+                    if goldModel:IsA("Model") and goldModel:FindFirstChild("Reference") then
+                        local targetPosition = goldModel.Reference.Position + Vector3.new(0, 10, 0)
+                        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+
+                        -- Tunggu hingga model dihapus
+                        while goldModel.Parent == goldFolder and autoGoldEnabled do
                             wait(1)
                         end
 
-                        -- Tunggu tambahan 3 detik sebelum berpindah
+                        -- Jeda sebelum berpindah ke resource berikutnya
                         wait(3)
                     end
                 end
             end
-
-            wait(1) -- Jeda antar iterasi loop utama
         end
 
-        OrionLib:MakeNotification({
-            Name = "Auto Gods",
-            Content = "Auto Gods stopped.",
-            Time = 3
-        })
+        wait(1)
     end
+
+    OrionLib:MakeNotification({
+        Name = "Auto Gold",
+        Content = "Stopped.",
+        Time = 3
+    })
+end
 
 -- Fungsi Auto Rebirth
 local function runAutoRebirth()
@@ -1129,17 +1177,38 @@ end
         end
     })
 
-    -- Tambahkan Toggle untuk Auto Gods
-    AutoFeaturesTab:AddToggle({
-        Name = "Auto Gods",
-        Default = false,
-        Callback = function(state)
-            autoGodsEnabled = state
-            if state then
-                spawn(runAutoGods)
-            end
-        end
-    })
+	AutoFeaturesTab:AddToggle({
+		Name = "Auto Gods + Auto Gold",
+		Default = false,
+		Callback = function(state)
+			autoGodsAndGoldEnabled = state
+			if state then
+				spawn(runAutoGodsAndGold)
+			end
+		end
+	})
+
+	AutoFeaturesTab:AddToggle({
+		Name = "Auto Gods",
+		Default = false,
+		Callback = function(state)
+			autoGodsEnabled = state
+			if state then
+				spawn(runAutoGods)
+			end
+		end
+	})
+
+	AutoFeaturesTab:AddToggle({
+		Name = "Auto Gold",
+		Default = false,
+		Callback = function(state)
+			autoGoldEnabled = state
+			if state then
+				spawn(runAutoGold)
+			end
+		end
+	})
 
     -- Tambahkan Toggle untuk Auto Rebirth
     AutoFeaturesTab:AddToggle({
@@ -1152,6 +1221,295 @@ end
             end
         end
     })
+
+-- Tambahkan toggle untuk Auto Hellstone, Phantomite, dan Soulite secara individual
+local autoHellstoneEnabled = false
+local autoPhantomiteEnabled = false
+local autoSouliteEnabled = false
+
+local function runAutoOre(oreName)
+    while (oreName == "Hellstone" and autoHellstoneEnabled) or
+          (oreName == "Phantomite" and autoPhantomiteEnabled) or
+          (oreName == "Soulite" and autoSouliteEnabled) or
+          autoAllOresEnabled do
+
+        local resourcesFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Resources")
+
+        if resourcesFolder then
+            -- Cari ore sesuai dengan nama yang diberikan
+            local ores = {}
+            for _, resource in pairs(resourcesFolder:GetChildren()) do
+                if resource:IsA("Folder") then
+                    for _, ore in pairs(resource:GetChildren()) do
+                        if ore:IsA("Model") and string.find(ore.Name, oreName) then
+                            table.insert(ores, ore)
+                        end
+                    end
+                end
+            end
+
+            -- Sortir ore berdasarkan jarak dari player
+            table.sort(ores, function(a, b)
+                local playerPos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+                return (a:GetModelCFrame().Position - playerPos).Magnitude < (b:GetModelCFrame().Position - playerPos).Magnitude
+            end)
+
+            -- Teleport ke ores satu per satu
+            for _, ore in ipairs(ores) do
+                if not autoAllOresEnabled and 
+                   ((oreName == "Hellstone" and not autoHellstoneEnabled) or 
+                    (oreName == "Phantomite" and not autoPhantomiteEnabled) or 
+                    (oreName == "Soulite" and not autoSouliteEnabled)) then
+                    break
+                end
+
+                -- Teleport ke ore
+                local targetPosition = ore:GetModelCFrame().Position + Vector3.new(0, 3, 0) -- Posisi di atas ore
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+
+                -- Tunggu sampai ore benar-benar hilang
+                while ore and ore.Parent == resourcesFolder and 
+                      ((oreName == "Hellstone" and autoHellstoneEnabled) or 
+                       (oreName == "Phantomite" and autoPhantomiteEnabled) or 
+                       (oreName == "Soulite" and autoSouliteEnabled) or 
+                       autoAllOresEnabled) do
+                    -- Validasi tambahan: pastikan model masih ada di workspace
+                    if not ore:IsDescendantOf(workspace) then
+                        break -- Model telah dihapus
+                    end
+                    wait(0.1)
+                end
+
+                -- Jeda sebelum pindah ke ore berikutnya
+                wait(5)
+            end
+        else
+            -- Jika Resources folder tidak ditemukan
+            OrionLib:MakeNotification({
+                Name = "Auto " .. oreName,
+                Content = "No Resources folder found in the workspace.",
+                Time = 3
+            })
+            break
+        end
+
+        -- Jeda kecil sebelum loop berikutnya
+        wait(1)
+    end
+
+    -- Notifikasi jika Auto Ore dihentikan
+    OrionLib:MakeNotification({
+        Name = "Auto " .. oreName,
+        Content = "Auto " .. oreName .. " stopped.",
+        Time = 3
+    })
+end
+
+
+-- Tambahkan Toggle untuk Auto Hellstone
+AutoFeaturesTab:AddToggle({
+    Name = "Auto Hellstone",
+    Default = false,
+    Callback = function(state)
+        autoHellstoneEnabled = state
+        if state then
+            spawn(function()
+                runAutoOre("Hellstone")
+            end)
+        end
+    end
+})
+
+-- Tambahkan Toggle untuk Auto Phantomite
+AutoFeaturesTab:AddToggle({
+    Name = "Auto Phantomite",
+    Default = false,
+    Callback = function(state)
+        autoPhantomiteEnabled = state
+        if state then
+            spawn(function()
+                runAutoOre("Phantomite")
+            end)
+        end
+    end
+})
+
+-- Tambahkan Toggle untuk Auto Soulite
+AutoFeaturesTab:AddToggle({
+    Name = "Auto Soulite",
+    Default = false,
+    Callback = function(state)
+        autoSouliteEnabled = state
+        if state then
+            spawn(function()
+                runAutoOre("Soulite")
+            end)
+        end
+    end
+})
+
+-- Tambahkan Toggle untuk Auto All Ores
+AutoFeaturesTab:AddToggle({
+    Name = "Auto All Ores (Hellstone, Phantomite, Soulite)",
+    Default = false,
+    Callback = function(state)
+        autoAllOresEnabled = state
+        if state then
+            spawn(function()
+                runAutoOre("Hellstone")
+            end)
+            spawn(function()
+                runAutoOre("Phantomite")
+            end)
+            spawn(function()
+                runAutoOre("Soulite")
+            end)
+        end
+    end
+})
+
+
+-- Tambahkan toggle untuk Auto Zombie, Skeleton, dan Serpent secara individual
+local autoZombieEnabled = false
+local autoSkeletonEnabled = false
+local autoSerpentEnabled = false
+
+-- Tambahkan toggle untuk menjalankan semua (Zombie, Skeleton, Serpent)
+local autoAllCrittersEnabled = false
+
+-- Fungsi utama untuk Auto Critter
+local function runAutoCritter(critterName)
+    while (critterName == "Zombie" and autoZombieEnabled) or
+          (critterName == "Skeleton" and autoSkeletonEnabled) or
+          (critterName == "Serpent" and autoSerpentEnabled) or
+          autoAllCrittersEnabled do
+
+        local crittersFolder = workspace:FindFirstChild("Important") and workspace.Important:FindFirstChild("Critters")
+
+        if crittersFolder then
+            -- Cari critter sesuai dengan nama yang diberikan
+            local critters = {}
+            for _, critter in pairs(crittersFolder:GetChildren()) do
+                if critter:IsA("Model") and string.find(critter.Name, critterName) then
+                    table.insert(critters, critter)
+                end
+            end
+
+            -- Sortir critters berdasarkan jarak dari player
+            table.sort(critters, function(a, b)
+                local playerPos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+                return (a:GetModelCFrame().Position - playerPos).Magnitude < (b:GetModelCFrame().Position - playerPos).Magnitude
+            end)
+
+            -- Teleport ke critters satu per satu
+            for _, critter in ipairs(critters) do
+                if not autoAllCrittersEnabled and 
+                   ((critterName == "Zombie" and not autoZombieEnabled) or 
+                    (critterName == "Skeleton" and not autoSkeletonEnabled) or 
+                    (critterName == "Serpent" and not autoSerpentEnabled)) then
+                    break
+                end
+
+                -- Teleport ke critter
+                local targetPosition = critter:GetModelCFrame().Position + Vector3.new(0, 10, 0) -- Posisi di atas critter
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+
+                -- Tunggu sampai critter benar-benar hilang
+                while critter and critter.Parent == crittersFolder and 
+                      ((critterName == "Zombie" and autoZombieEnabled) or 
+                       (critterName == "Skeleton" and autoSkeletonEnabled) or 
+                       (critterName == "Serpent" and autoSerpentEnabled) or 
+                       autoAllCrittersEnabled) do
+                    -- Validasi tambahan: pastikan critter masih ada di workspace
+                    if not critter:IsDescendantOf(workspace) then
+                        break -- Critter telah dihapus
+                    end
+                    wait(0.1)
+                end
+
+                -- Jeda sebelum pindah ke critter berikutnya
+                wait(1)
+            end
+        else
+            -- Jika folder Critters tidak ditemukan
+            OrionLib:MakeNotification({
+                Name = "Auto " .. critterName,
+                Content = "No Critters folder found in the workspace.",
+                Time = 3
+            })
+            break
+        end
+
+        -- Jeda kecil sebelum loop berikutnya
+        wait(1)
+    end
+
+    -- Notifikasi jika Auto Critter dihentikan
+    OrionLib:MakeNotification({
+        Name = "Auto " .. critterName,
+        Content = "Auto " .. critterName .. " stopped.",
+        Time = 3
+    })
+end
+
+-- Tambahkan Toggle di Auto Features Tab
+AutoFeaturesTab:AddToggle({
+    Name = "Auto Zombie",
+    Default = false,
+    Callback = function(state)
+        autoZombieEnabled = state
+        if state then
+            spawn(function()
+                runAutoCritter("Zombie")
+            end)
+        end
+    end
+})
+
+AutoFeaturesTab:AddToggle({
+    Name = "Auto Skeleton",
+    Default = false,
+    Callback = function(state)
+        autoSkeletonEnabled = state
+        if state then
+            spawn(function()
+                runAutoCritter("Skeleton")
+            end)
+        end
+    end
+})
+
+AutoFeaturesTab:AddToggle({
+    Name = "Auto Serpent",
+    Default = false,
+    Callback = function(state)
+        autoSerpentEnabled = state
+        if state then
+            spawn(function()
+                runAutoCritter("Serpent")
+            end)
+        end
+    end
+})
+
+AutoFeaturesTab:AddToggle({
+    Name = "Auto All Critters (Zombie, Skeleton, Serpent)",
+    Default = false,
+    Callback = function(state)
+        autoAllCrittersEnabled = state
+        if state then
+            spawn(function()
+                runAutoCritter("Zombie")
+            end)
+            spawn(function()
+                runAutoCritter("Skeleton")
+            end)
+            spawn(function()
+                runAutoCritter("Serpent")
+            end)
+        end
+    end
+})
 end
 
 -- Pastikan untuk memanggil fungsi createPickupTab setelah key valid
