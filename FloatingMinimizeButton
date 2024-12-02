@@ -1,0 +1,65 @@
+-- Create the Floating Minimize Button
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.Players.LocalPlayer.PlayerGui
+
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Size = UDim2.fromOffset(50, 50)
+MinimizeButton.Position = UDim2.fromOffset(10, 10)  -- Position at top-left of screen (adjust as needed)
+MinimizeButton.Text = "-"  -- Button text for minimize
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.TextSize = 24
+MinimizeButton.Parent = ScreenGui  -- Attach the minimize button to ScreenGui
+
+-- Adding dragging functionality to MinimizeButton
+local DraggingMinimize, DragInputMinimize, MousePosMinimize, StartPosMinimize
+
+MinimizeButton.InputBegan:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+        DraggingMinimize = true
+        MousePosMinimize = Input.Position
+        StartPosMinimize = MinimizeButton.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(Input)
+    if DraggingMinimize and Input.UserInputType == Enum.UserInputType.MouseMovement then
+        local Delta = Input.Position - MousePosMinimize
+        MinimizeButton.Position = UDim2.fromOffset(StartPosMinimize.X.Offset + Delta.X, StartPosMinimize.Y.Offset + Delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+        DraggingMinimize = false
+    end
+end)
+
+-- Minimize window when the button is clicked
+MinimizeButton.MouseButton1Click:Connect(function()
+    Window.Minimized = not Window.Minimized
+    Window.Root.Visible = not Window.Minimized  -- Toggle the window visibility
+end)
+
+-- Dragging functionality for the window
+local Dragging, DragInput, MousePos, StartPos
+Window.Root.InputBegan:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Dragging = true
+        MousePos = Input.Position
+        StartPos = Window.Root.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(Input)
+    if Dragging and Input.UserInputType == Enum.UserInputType.MouseMovement then
+        local Delta = Input.Position - MousePos
+        Window.Root.Position = UDim2.fromOffset(StartPos.X.Offset + Delta.X, StartPos.Y.Offset + Delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Dragging = false
+    end
+end)
