@@ -52,21 +52,65 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
--- Variabel untuk toggle
+-- Variabel untuk toggle dan input
 local Options = Fluent.Options
 getgenv().AutoTeleportEnabled = false
 getgenv().AutoClickEnabled = false
+getgenv().VirtualAutoClickEnabled = false
+getgenv().TPMeteorsEnabled = false
+getgenv().TPOrbsEnabled = false
 
--- Fungsi Teleport to Present
+-- Fungsi TP Present to Player
 task.spawn(function()
     while task.wait(0.1) do
         if getgenv().AutoTeleportEnabled then
             local presents = workspace:FindFirstChild("activePresents")
-            if presents then
+            local player = game.Players.LocalPlayer
+            if presents and player and player.Character then
+                local playerPosition = player.Character.HumanoidRootPart.Position
                 for _, present in pairs(presents:GetChildren()) do
                     if present:IsA("BasePart") then
-                        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = present.CFrame
-                        break
+                        present.CFrame = CFrame.new(playerPosition) -- Memindahkan Present tepat ke posisi pemain
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Fungsi TP Meteors to Player
+task.spawn(function()
+    while task.wait(0.1) do
+        if getgenv().TPMeteorsEnabled then
+            local meteors = workspace:FindFirstChild("ActiveMeteors")
+            local player = game.Players.LocalPlayer
+            if player and player.Character then
+                local playerPosition = player.Character.HumanoidRootPart.Position
+                if meteors then
+                    for _, meteor in pairs(meteors:GetChildren()) do
+                        if meteor:IsA("BasePart") then
+                            meteor.CFrame = CFrame.new(playerPosition) -- Memindahkan Meteor tepat ke posisi pemain
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Fungsi TP Orbs to Player
+task.spawn(function()
+    while task.wait(0.1) do
+        if getgenv().TPOrbsEnabled then
+            local orbs = workspace:FindFirstChild("activeOrbs")
+            local player = game.Players.LocalPlayer
+            if player and player.Character then
+                local playerPosition = player.Character.HumanoidRootPart.Position
+                if orbs then
+                    for _, orb in pairs(orbs:GetChildren()) do
+                        if orb:IsA("BasePart") then
+                            orb.CFrame = CFrame.new(playerPosition) -- Memindahkan Orb tepat ke posisi pemain
+                        end
                     end
                 end
             end
@@ -86,13 +130,49 @@ task.spawn(function()
     end
 end)
 
+-- Fungsi Virtual Auto Click
+task.spawn(function()
+    while task.wait(1) do -- Menunggu 1 detik sebelum klik berikutnya
+        if getgenv().VirtualAutoClickEnabled then
+            game:GetService("VirtualInputManager"):SendMouseButtonEvent(
+                game.Workspace.CurrentCamera.ViewportSize.X - 10, -- Posisi x di pojok kanan atas
+                10, -- Posisi y di pojok kanan atas
+                0, -- Tombol kiri mouse
+                true, -- Tekan tombol
+                game,
+                0
+            )
+            game:GetService("VirtualInputManager"):SendMouseButtonEvent(
+                game.Workspace.CurrentCamera.ViewportSize.X - 10,
+                10,
+                0,
+                false, -- Lepaskan tombol
+                game,
+                0
+            )
+        end
+    end
+end)
+
 -- Tab Main
-Tabs.Main:AddToggle("AutoTeleport", { Title = "Teleport to Present", Default = false }):OnChanged(function()
+Tabs.Main:AddToggle("AutoTeleport", { Title = "TP Present to Player", Default = false }):OnChanged(function()
     getgenv().AutoTeleportEnabled = Options.AutoTeleport.Value
+end)
+
+Tabs.Main:AddToggle("TPMeteors", { Title = "TP Meteors to Player", Default = false }):OnChanged(function()
+    getgenv().TPMeteorsEnabled = Options.TPMeteors.Value
+end)
+
+Tabs.Main:AddToggle("TPOrbs", { Title = "TP Orbs to Player", Default = false }):OnChanged(function()
+    getgenv().TPOrbsEnabled = Options.TPOrbs.Value
 end)
 
 Tabs.Main:AddToggle("AutoClick", { Title = "Auto Click", Default = false }):OnChanged(function()
     getgenv().AutoClickEnabled = Options.AutoClick.Value
+end)
+
+Tabs.Main:AddToggle("VirtualAutoClick", { Title = "Virtual Auto Click", Default = false }):OnChanged(function()
+    getgenv().VirtualAutoClickEnabled = Options.VirtualAutoClick.Value
 end)
 
 -- SaveManager dan InterfaceManager
