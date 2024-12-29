@@ -266,7 +266,9 @@ local RedeemCodes = {
 "LASTSHUTTODAY",
 "FIXEDLIMITRESET",
 "UPDATE22",
-"UPDATE22Fixes"
+"UPDATE22Fixes",
+"UPDATE23",
+"UPDATE23FIXES"
 }
 
 -- Add Auto Redeem Code Button Below Auto Rejoin Toggle
